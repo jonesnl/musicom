@@ -1,0 +1,11 @@
+[package]
+name = "musicom"
+version = "0.1.0"
+authors = ["Nate Jones <jonesnl@umich.edu>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cursive = "0.15"
+gstreamer = "0.16.2"
