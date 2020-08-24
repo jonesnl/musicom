@@ -2,7 +2,8 @@ use std::fs;
 use std::path::Path;
 use std::io;
 
-use cursive::views::SelectView;
+use cursive::view::SizeConstraint;
+use cursive::views::{LinearLayout, SelectView, DebugView, ResizedView};
 use cursive::align::HAlign;
 // use cursive::traits::*;
 
@@ -32,10 +33,20 @@ impl UI {
         select.set_on_submit(move |_siv, song_path: &str| {
             player_hdl.play_file(song_path);
         });
+
+        let rsz_view = ResizedView::new(SizeConstraint::Full, SizeConstraint::Full, select);
+        let rsz_view_2 = ResizedView::new(SizeConstraint::Full, SizeConstraint::Full, DebugView::default());
+
+        let linear_layout = LinearLayout::horizontal()
+            .child(rsz_view)
+            .child(rsz_view_2);
+
         let mut siv = cursive::default();
 
-        siv.add_layer(select);
+        siv.add_fullscreen_layer(linear_layout);
 
+        cursive::logger::init();
+        log::warn!("TEST");
         siv.run();
         Ok(())
     }
