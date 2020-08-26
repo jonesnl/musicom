@@ -1,12 +1,13 @@
 use std::thread;
 use std::sync::mpsc::{Sender, Receiver, channel};
+use std::path::PathBuf;
 
 use gst::glib;
 use gst::prelude::*;
 
 #[derive(PartialEq)]
 enum PlayerActions {
-    PlayFile(String),
+    PlayFile(PathBuf),
     Stop,
     Quit,
 }
@@ -17,7 +18,7 @@ pub struct PlayerHandle {
 }
 
 impl PlayerHandle {
-    pub fn play_file<S: Into<String>>(&self, fname: S) {
+    pub fn play_file<S: Into<PathBuf>>(&self, fname: S) {
         self.sender.send(PlayerActions::PlayFile(fname.into())).expect("Player already destroyed");
     }
 
@@ -33,7 +34,7 @@ impl PlayerHandle {
 
 pub struct Player {
     glib_loop: gst::glib::MainLoop,
-    pipeline: Option<gst::Pipeline>,
+    pipeline: Option<gst::Element>,
     receiver: Receiver<PlayerActions>,
 }
 
@@ -86,67 +87,25 @@ impl Player {
         action != PlayerActions::Quit
     }
 
-    pub fn play_file<S: Into<String>>(&mut self, fname: S) {
+    pub fn play_file<S: Into<PathBuf>>(&mut self, fname: S) {
+        use url::Url;
         if self.pipeline.is_some() {
             self.stop();
         }
 
-        let fname_string: String = fname.into();
+        // The resulting URI must be an aboslute path, so canonicalize before converting to a URI
+        let canonical_path: PathBuf = fname.into().canonicalize().unwrap();
+        let uri = Url::from_file_path(canonical_path).unwrap().into_string();
 
-        let source = gst::ElementFactory::make("filesrc", Some("file-source")).unwrap();
-        let demuxer = gst::ElementFactory::make("oggdemux", Some("ogg-demuxer")).unwrap();
-        let decoder = gst::ElementFactory::make("vorbisdec", Some("vorbis-decoder")).unwrap();
-        let conv = gst::ElementFactory::make("audioconvert", Some("converter")).unwrap();
-        let sink = gst::ElementFactory::make("autoaudiosink", Some("audio-output")).unwrap();
-        let pipeline = gst::Pipeline::new(Some("test-pipeline"));
+        // For now use playbin since it's easiest to play basic music.
+        // If we want to have filters and such in the future we can add that then
+        let playbin = gst::ElementFactory::make("playbin", Some("play")).unwrap();
 
-        pipeline
-            .add_many(&[&source, &demuxer, &decoder, &conv, &sink])
-            .unwrap();
+        playbin.set_property("uri", &uri).unwrap();
 
-        gst::Element::link(&source, &demuxer).unwrap();
-        gst::Element::link_many(&[&decoder, &conv, &sink]).unwrap();
-        demuxer.connect_pad_added(move |_src, src_pad| {
-            let sink_pad = decoder.get_static_pad("sink").unwrap();
-            src_pad.link(&sink_pad).unwrap();
-        });
+        playbin.set_state(gst::State::Playing).unwrap();
 
-        source.set_property("location", &fname_string).unwrap();
-
-        pipeline
-            .set_state(gst::State::Playing)
-            .expect("Unable to set the pipeline to a playing state");
-
-        // Wait until error or EOS
-        pipeline
-            .get_bus()
-            .unwrap()
-            .add_watch(move |_, msg| {
-                use gst::MessageView;
-
-                match msg.view() {
-                    MessageView::Eos(..) => {
-                        /*
-                        eprintln!("End of stream");
-                        */
-                    }
-                    MessageView::Error(_err) => {
-                        /*
-                        eprintln!(
-                            "Error from {:?}: {} ({:?})",
-                            _err.get_src().map(|s| s.get_path_string()),
-                            _err.get_error(),
-                            _err.get_debug()
-                        );
-                        */
-                    }
-                    _ => (),
-                };
-                glib::Continue(true)
-            })
-            .unwrap();
-
-        self.pipeline = Some(pipeline);
+        self.pipeline = Some(playbin);
     }
 
     pub fn stop(&mut self) {
