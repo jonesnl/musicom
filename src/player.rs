@@ -5,6 +5,8 @@ use std::path::PathBuf;
 use gst::glib;
 use gst::prelude::*;
 
+use crate::SONG_PERCENTAGE;
+
 #[derive(PartialEq)]
 enum PlayerActions {
     PlayFile(PathBuf),
@@ -34,7 +36,7 @@ impl PlayerHandle {
 
 pub struct Player {
     glib_loop: gst::glib::MainLoop,
-    pipeline: Option<gst::Element>,
+    pipeline: gst::Element,
     receiver: Receiver<PlayerActions>,
 }
 
@@ -55,8 +57,9 @@ impl Player {
         });
 
         let (sender, receiver) = channel();
+        let playbin = gst::ElementFactory::make("playbin", Some("play")).unwrap();
         let mut player = Player {
-            pipeline: None,
+            pipeline: playbin,
             glib_loop: main_loop,
             receiver,
         };
@@ -73,7 +76,7 @@ impl Player {
                 };
             }
         });
-        
+
         PlayerHandle { sender }
     }
 
@@ -89,31 +92,32 @@ impl Player {
 
     pub fn play_file<S: Into<PathBuf>>(&mut self, fname: S) {
         use url::Url;
-        if self.pipeline.is_some() {
-            self.stop();
-        }
+        self.stop();
 
         // The resulting URI must be an aboslute path, so canonicalize before converting to a URI
         let canonical_path: PathBuf = fname.into().canonicalize().unwrap();
         let uri = Url::from_file_path(canonical_path).unwrap().into_string();
 
-        // For now use playbin since it's easiest to play basic music.
-        // If we want to have filters and such in the future we can add that then
-        let playbin = gst::ElementFactory::make("playbin", Some("play")).unwrap();
+        self.pipeline.set_property("uri", &uri).unwrap();
 
-        playbin.set_property("uri", &uri).unwrap();
-
-        playbin.set_state(gst::State::Playing).unwrap();
-
-        self.pipeline = Some(playbin);
+        self.pipeline.set_state(gst::State::Playing).unwrap();
+        let pipeline_copy = self.pipeline.clone();
+        glib::timeout_add(100, move || {
+            if let (_, gst::State::Playing, _) = pipeline_copy.get_state(gst::ClockTime::none()) {
+                let percent = pipeline_copy.query_position::<gst::format::Percent>().unwrap();
+                SONG_PERCENTAGE.set(percent.unwrap() as usize);
+                log::warn!("Percentage: {}", SONG_PERCENTAGE.get());
+                glib::Continue(true)
+            } else {
+                glib::Continue(false)
+            }
+        });
     }
 
     pub fn stop(&mut self) {
         // Shutdown pipeline
-        if let Some(ref mut pipeline) = self.pipeline {
-            pipeline
-                .set_state(gst::State::Null)
-                .expect("Unable to set the pipeline to the `Null` state");
-        }
+        self.pipeline
+            .set_state(gst::State::Null)
+            .expect("Unable to set the pipeline to the `Null` state");
     }
 }

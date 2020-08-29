@@ -5,6 +5,14 @@ mod ui;
 
 use std::env;
 
+use cursive::utils::Counter;
+
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref SONG_PERCENTAGE: Counter = Counter::new(0);
+}
+
 fn main() {
     gst::init().unwrap();
 
@@ -15,6 +23,8 @@ fn main() {
         println!("Usage: player uri");
         std::process::exit(-1)
     };
+
+    SONG_PERCENTAGE.set(10);
 
     let player_hdl = player::Player::new();
     let mut ui = ui::UI::new(player_hdl.clone());

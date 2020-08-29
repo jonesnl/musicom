@@ -492,6 +492,7 @@ version = "0.1.0"
 dependencies = [
  "cursive",
  "gstreamer",
+ "lazy_static",
  "log",
  "url",
 ]
