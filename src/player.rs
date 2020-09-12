@@ -1,54 +1,64 @@
 use std::thread;
-use std::sync::mpsc::{Sender, Receiver, channel};
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 
 use gst::glib;
 use gst::prelude::*;
 
-use crate::SONG_PERCENTAGE;
+use lazy_static::lazy_static;
 
-#[derive(PartialEq)]
-enum PlayerActions {
-    PlayFile(PathBuf),
-    Stop,
-    Quit,
+lazy_static! {
+    static ref PLAYER_WORKER: Arc<Mutex<PlayerWorker>> =
+        Arc::new(Mutex::new(PlayerWorker::new()));
 }
 
 #[derive(Clone)]
-pub struct PlayerHandle {
-    sender: Sender<PlayerActions>,
-}
-
-impl PlayerHandle {
-    pub fn play_file<S: Into<PathBuf>>(&self, fname: S) {
-        self.sender.send(PlayerActions::PlayFile(fname.into())).expect("Player already destroyed");
-    }
-
-    pub fn stop(&self) {
-        self.sender.send(PlayerActions::Stop).expect("Player already destroyed");
-    }
-
-    pub fn quit(&self) {
-        /* Ignore errors here since it would mean that the channel is already closed */
-        let _ = self.sender.send(PlayerActions::Quit);
-    }
-}
-
 pub struct Player {
+    player_worker_hdl: Arc<Mutex<PlayerWorker>>,
+}
+
+impl Player {
+    pub fn new() -> Self {
+        Player {
+            player_worker_hdl: PLAYER_WORKER.clone(),
+        }
+    }
+
+    pub fn play_file<S: Into<PathBuf>>(&self, fname: S) {
+        let locked_player = self.player_worker_hdl.lock().unwrap();
+        locked_player.play_file(fname);
+    }
+
+    pub fn _stop(&self) {
+        let locked_player = self.player_worker_hdl.lock().unwrap();
+        locked_player.stop();
+    }
+
+    pub fn get_stream_length(&self) -> Option<gst::ClockTime> {
+        let locked_player = self.player_worker_hdl.lock().unwrap();
+        locked_player.get_stream_length()
+    }
+
+    pub fn get_stream_position(&self) -> Option<gst::ClockTime> {
+        let locked_player = self.player_worker_hdl.lock().unwrap();
+        locked_player.get_stream_position()
+    }
+}
+
+struct PlayerWorker {
     glib_loop: gst::glib::MainLoop,
     pipeline: gst::Element,
-    receiver: Receiver<PlayerActions>,
 }
 
-impl Drop for Player {
+impl Drop for PlayerWorker {
     fn drop(&mut self) {
         /* quit the loop so that the loop thread is killed and doesn't hang around */
         self.glib_loop.quit();
     }
 }
 
-impl Player {
-    pub fn new() -> PlayerHandle {
+impl PlayerWorker {
+    pub fn new() -> Self {
         // Wait until error or EOS
         let main_loop = glib::MainLoop::new(None, false);
         let main_loop_clone = main_loop.clone();
@@ -56,41 +66,15 @@ impl Player {
             main_loop_clone.run();
         });
 
-        let (sender, receiver) = channel();
         let playbin = gst::ElementFactory::make("playbin", Some("play")).unwrap();
-        let mut player = Player {
+        let player_worker = Self {
             pipeline: playbin,
             glib_loop: main_loop,
-            receiver,
         };
-
-        thread::spawn(move || {
-            loop {
-                match player.receiver.recv() {
-                    Ok(action) => {
-                        if player.handle_action(action) == false {
-                            return;
-                        }
-                    },
-                    Err(_) => return,
-                };
-            }
-        });
-
-        PlayerHandle { sender }
+        player_worker
     }
 
-    fn handle_action(&mut self, action: PlayerActions) -> bool {
-        match action {
-            PlayerActions::PlayFile(ref path) => self.play_file(path),
-            PlayerActions::Stop => self.stop(),
-            PlayerActions::Quit => (),
-        };
-
-        action != PlayerActions::Quit
-    }
-
-    pub fn play_file<S: Into<PathBuf>>(&mut self, fname: S) {
+    pub fn play_file<S: Into<PathBuf>>(&self, fname: S) {
         use url::Url;
         self.stop();
 
@@ -101,23 +85,20 @@ impl Player {
         self.pipeline.set_property("uri", &uri).unwrap();
 
         self.pipeline.set_state(gst::State::Playing).unwrap();
-        let pipeline_copy = self.pipeline.clone();
-        glib::timeout_add(100, move || {
-            if let (_, gst::State::Playing, _) = pipeline_copy.get_state(gst::ClockTime::none()) {
-                let percent = pipeline_copy.query_position::<gst::format::Percent>().unwrap();
-                SONG_PERCENTAGE.set(percent.unwrap() as usize);
-                log::warn!("Percentage: {}", SONG_PERCENTAGE.get());
-                glib::Continue(true)
-            } else {
-                glib::Continue(false)
-            }
-        });
     }
 
-    pub fn stop(&mut self) {
+    pub fn stop(&self) {
         // Shutdown pipeline
         self.pipeline
             .set_state(gst::State::Null)
             .expect("Unable to set the pipeline to the `Null` state");
+    }
+
+    pub fn get_stream_position(&self) -> Option<gst::ClockTime> {
+        self.pipeline.query_position::<gst::ClockTime>()
+    }
+
+    pub fn get_stream_length(&self) -> Option<gst::ClockTime> {
+        self.pipeline.query_duration::<gst::ClockTime>()
     }
 }

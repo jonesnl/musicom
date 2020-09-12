@@ -7,12 +7,12 @@ use cursive::traits::*;
 use cursive::view::ViewWrapper;
 use cursive::views::{NamedView, SelectView};
 
-use crate::player::PlayerHandle;
+use crate::player::Player;
 
 pub struct FileBrowserView {
     select_view: SelectView,
     directory: PathBuf,
-    player_hdl: PlayerHandle,
+    player: Player,
 }
 
 impl ViewWrapper for FileBrowserView {
@@ -20,7 +20,7 @@ impl ViewWrapper for FileBrowserView {
 }
 
 impl FileBrowserView {
-    pub fn new<PB>(player_hdl: PlayerHandle, starting_path: PB) -> NamedView<Self>
+    pub fn new<PB>(starting_path: PB) -> NamedView<Self>
     where
         PB: Into<PathBuf>,
     {
@@ -29,7 +29,7 @@ impl FileBrowserView {
         let mut fbv = FileBrowserView {
             select_view,
             directory: starting_path.into(),
-            player_hdl,
+            player: Player::new(),
         };
 
         fbv.set_callbacks();
@@ -46,7 +46,7 @@ impl FileBrowserView {
                     view.directory = full_path.canonicalize().unwrap();
                     view.refresh_view();
                 } else if full_path.is_file() {
-                    view.player_hdl.play_file(full_path);
+                    view.player.play_file(full_path);
                 }
             });
         });

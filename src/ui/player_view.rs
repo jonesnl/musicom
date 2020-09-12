@@ -1,38 +1,48 @@
-use cursive::view::ViewWrapper;
-use cursive::views::{LinearLayout, NamedView, ProgressBar};
-use cursive::traits::*;
+use cursive::view::View;
+use cursive::Printer;
+
+use crate::player::Player;
 
 pub struct PlayerView {
-    layout_view: LinearLayout,
+    player: Player,
 }
 
-impl ViewWrapper for PlayerView {
-    cursive::wrap_impl!(self.layout_view: LinearLayout);
+fn format_time(time: gst::ClockTime) -> String {
+    let minutes = time.minutes().unwrap();
+    let seconds = time.seconds().unwrap() % 60;
+    format!(
+        "{:02}:{:02}",
+        minutes,
+        seconds,
+    )
+}
+
+impl View for PlayerView {
+    fn draw(&self, printer: &Printer) {
+        let build_stream_length = || -> Option<String> {
+            Some(format_time(self.player.get_stream_length()?))
+        };
+        let build_stream_position = || -> Option<String> {
+            Some(format_time(self.player.get_stream_position()?))
+        };
+
+        let playback_counter_string = format!(
+            "{}/{}",
+            build_stream_position().unwrap_or("00:00".to_string()),
+            build_stream_length().unwrap_or("00:00".to_string()),
+        );
+
+        printer.print(
+            (0, 0),
+            &playback_counter_string,
+        );
+    }
 }
 
 impl PlayerView {
-    const PROGRESS_BAR_IDX: usize = 0;
-    pub fn new() -> NamedView<Self> {
-        let mut player_view = PlayerView {
-            layout_view: LinearLayout::vertical(),
-        };
-
-        let mut progress_view = ProgressBar::new()
-            .with_label(|_, _| "".to_string())
-            .with_value(crate::SONG_PERCENTAGE.clone())
-            .max(gst::FORMAT_PERCENT_MAX as usize);
-        player_view.layout_view.add_child(progress_view);
-
-        player_view.with_name("player")
-    }
-
-    pub fn set_progress(&mut self, percentage: u32) {
-        let progress_view: &mut ProgressBar =
-            self.layout_view
-            .get_child_mut(Self::PROGRESS_BAR_IDX)
-            .expect("No children")
-            .downcast_mut()
-            .expect("Isn't a ProgressBar");
-        progress_view.set_value(percentage as usize);
+    pub fn new() -> Self {
+        PlayerView {
+            player: Player::new(),
+        }
     }
 }
