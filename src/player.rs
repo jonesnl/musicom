@@ -1,6 +1,6 @@
-use std::thread;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use std::thread;
 
 use gst::glib;
 use gst::prelude::*;
@@ -8,8 +8,7 @@ use gst::prelude::*;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref PLAYER_WORKER: Arc<Mutex<PlayerWorker>> =
-        Arc::new(Mutex::new(PlayerWorker::new()));
+    static ref PLAYER_WORKER: Arc<Mutex<PlayerWorker>> = Arc::new(Mutex::new(PlayerWorker::new()));
 }
 
 #[derive(Clone)]

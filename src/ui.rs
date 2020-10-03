@@ -27,8 +27,7 @@ impl UI {
     }
 
     fn build_views(&self, dir: &Path) -> LinearLayout {
-        let file_browser_view =
-            self::file_browser::FileBrowserView::new(dir);
+        let file_browser_view = self::file_browser::FileBrowserView::new(dir);
 
         let browser_layout = LinearLayout::horizontal().child(file_browser_view.full_width());
         //.child(DebugView::default().scrollable().scroll_strategy(cursive::view::ScrollStrategy::StickToBottom).full_width());
