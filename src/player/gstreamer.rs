@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::thread;
 
 use gst::glib;
+use gst::ClockTime;
 use gst::prelude::*;
 
 use super::Player;
@@ -59,6 +60,21 @@ impl Player for GstPlayer {
 
     fn get_stream_position(&self) -> Option<gst::ClockTime> {
         self.pipeline.query_position::<gst::ClockTime>()
+    }
+
+    fn toggle_play_pause(&self) {
+        let (_, cur_state, _) = self.pipeline.get_state(ClockTime::from_mseconds(50));
+        match cur_state {
+            gst::State::Playing => {
+                self.pipeline.set_state(gst::State::Paused).unwrap();
+            },
+            gst::State::Paused => {
+                self.pipeline.set_state(gst::State::Playing).unwrap();
+            },
+            _ => {
+                log::trace!("Do nothing on toggle on state {:?}", cur_state);
+            },
+        }
     }
 
     fn get_stream_length(&self) -> Option<gst::ClockTime> {

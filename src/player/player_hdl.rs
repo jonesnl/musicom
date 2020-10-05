@@ -30,6 +30,10 @@ impl Player for PlayerHdl {
         self.gstreamer_hdl.play_file(fname);
     }
 
+    fn toggle_play_pause(&self) {
+        self.gstreamer_hdl.toggle_play_pause();
+    }
+
     fn stop(&self) {
         self.gstreamer_hdl.stop();
     }

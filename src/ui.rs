@@ -7,11 +7,18 @@ use std::path::Path;
 use cursive::view::Resizable;
 use cursive::views::LinearLayout;
 
-pub struct UI {}
+use crate::player::PlayerHdl;
+use crate::player::prelude::*;
+
+pub struct UI {
+    player: PlayerHdl,
+}
 
 impl UI {
     pub fn new() -> UI {
-        UI {}
+        UI {
+            player: PlayerHdl::new(),
+        }
     }
 
     pub fn run(&mut self, dir: &Path) -> io::Result<()> {
@@ -22,6 +29,10 @@ impl UI {
         siv.set_autorefresh(true);
 
         cursive::logger::init();
+        let player_clone = self.player.clone();
+        siv.add_global_callback('p', move |_| {
+            player_clone.toggle_play_pause();
+        });
         siv.run();
         Ok(())
     }
