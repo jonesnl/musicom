@@ -7,12 +7,13 @@ use cursive::traits::*;
 use cursive::view::ViewWrapper;
 use cursive::views::{NamedView, SelectView};
 
-use crate::player::Player;
+use crate::player::prelude::*;
+use crate::player::PlayerHdl;
 
 pub struct FileBrowserView {
     select_view: SelectView,
     directory: PathBuf,
-    player: Player,
+    player: PlayerHdl,
 }
 
 impl ViewWrapper for FileBrowserView {
@@ -29,7 +30,7 @@ impl FileBrowserView {
         let mut fbv = FileBrowserView {
             select_view,
             directory: starting_path.into(),
-            player: Player::new(),
+            player: PlayerHdl::new(),
         };
 
         fbv.set_callbacks();

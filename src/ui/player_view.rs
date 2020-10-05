@@ -1,10 +1,11 @@
 use cursive::view::View;
 use cursive::Printer;
 
-use crate::player::Player;
+use crate::player::prelude::*;
+use crate::player::PlayerHdl;
 
 pub struct PlayerView {
-    player: Player,
+    player: PlayerHdl,
 }
 
 fn format_time(time: gst::ClockTime) -> Option<String> {
@@ -33,7 +34,7 @@ impl View for PlayerView {
 impl PlayerView {
     pub fn new() -> Self {
         PlayerView {
-            player: Player::new(),
+            player: PlayerHdl::new(),
         }
     }
 }
