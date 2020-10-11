@@ -11,6 +11,7 @@ pub trait Player {
     fn stop(&self);
     fn get_stream_length(&self) -> Option<gst::ClockTime>;
     fn get_stream_position(&self) -> Option<gst::ClockTime>;
+    fn get_tag_list(&self) -> gst::TagList;
 }
 
 pub mod prelude {
