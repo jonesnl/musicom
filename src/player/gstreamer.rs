@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use std::thread;
+use std::sync::{Arc, RwLock};
 
 use gst::glib;
 use gst::ClockTime;
@@ -10,6 +11,7 @@ use super::Player;
 pub struct GstPlayer {
     glib_loop: gst::glib::MainLoop,
     pipeline: gst::Element,
+    current_tags: Arc<RwLock<gst::TagList>>,
 }
 
 impl Drop for GstPlayer {
@@ -27,11 +29,26 @@ impl GstPlayer {
         thread::spawn(move || {
             main_loop_clone.run();
         });
+        let tag_list_arc = Arc::new(RwLock::new(gst::TagList::new()));
 
         let playbin = gst::ElementFactory::make("playbin", Some("play")).unwrap();
+        let bus = playbin.get_bus().unwrap();
+        let tag_list_clone = tag_list_arc.clone();
+        bus.add_watch(move |_, msg| {
+            use gst::MessageView;
+            match msg.view() {
+                MessageView::Tag(tag) => {
+                    *tag_list_clone.write().unwrap() = tag.get_tags();
+                },
+                _ => {
+                },
+            };
+            Continue(true)
+        }).unwrap();
         let player_worker = Self {
             pipeline: playbin,
             glib_loop: main_loop,
+            current_tags: tag_list_arc,
         };
         player_worker
     }
@@ -79,5 +96,9 @@ impl Player for GstPlayer {
 
     fn get_stream_length(&self) -> Option<gst::ClockTime> {
         self.pipeline.query_duration::<gst::ClockTime>()
+    }
+
+    fn get_tag_list(&self) -> gst::TagList {
+        self.current_tags.read().unwrap().clone()
     }
 }

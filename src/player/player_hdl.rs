@@ -45,5 +45,8 @@ impl Player for PlayerHdl {
     fn get_stream_position(&self) -> Option<gst::ClockTime> {
         self.gstreamer_hdl.get_stream_position()
     }
-}
 
+    fn get_tag_list(&self) -> gst::TagList {
+        self.gstreamer_hdl.get_tag_list()
+    }
+}
