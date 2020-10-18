@@ -8,10 +8,14 @@ use gst::prelude::*;
 
 use super::Player;
 
+struct SharedPlayerContents {
+    tags: gst::TagList,
+}
+
 pub struct GstPlayer {
     glib_loop: gst::glib::MainLoop,
     pipeline: gst::Element,
-    current_tags: Arc<RwLock<gst::TagList>>,
+    shared: Arc<RwLock<SharedPlayerContents>>,
 }
 
 impl Drop for GstPlayer {
@@ -23,32 +27,45 @@ impl Drop for GstPlayer {
 
 impl GstPlayer {
     pub fn new() -> Self {
+        let shared = Arc::new(RwLock::new(SharedPlayerContents {
+            tags: gst::TagList::new(),
+        }));
+
         // Wait until error or EOS
         let main_loop = glib::MainLoop::new(None, false);
         let main_loop_clone = main_loop.clone();
         thread::spawn(move || {
             main_loop_clone.run();
         });
-        let tag_list_arc = Arc::new(RwLock::new(gst::TagList::new()));
 
         let playbin = gst::ElementFactory::make("playbin", Some("play")).unwrap();
-        let bus = playbin.get_bus().unwrap();
-        let tag_list_clone = tag_list_arc.clone();
-        bus.add_watch(move |_, msg| {
-            use gst::MessageView;
-            match msg.view() {
-                MessageView::Tag(tag) => {
-                    *tag_list_clone.write().unwrap() = tag.get_tags();
-                },
-                _ => {
-                },
-            };
-            Continue(true)
+
+        let shared_data_clone = shared.clone();
+        playbin.connect("audio-tags-changed", false, move |args| {
+            let playbin = args[0]
+                .get::<gst::Element>()
+                .unwrap()
+                .unwrap();
+
+            let stream_idx = args[1]
+                .get_some::<i32>()
+                .unwrap();
+
+            let tags = playbin.emit("get-audio-tags", &[&stream_idx])
+                .expect("Could not emit tags")
+                .unwrap()
+                .get::<gst::TagList>()
+                .expect("Could not get tags")
+                .unwrap();
+
+            shared_data_clone.write().unwrap().tags = tags;
+            None
         }).unwrap();
+
         let player_worker = Self {
             pipeline: playbin,
             glib_loop: main_loop,
-            current_tags: tag_list_arc,
+            shared,
         };
         player_worker
     }
@@ -99,6 +116,6 @@ impl Player for GstPlayer {
     }
 
     fn get_tag_list(&self) -> gst::TagList {
-        self.current_tags.read().unwrap().clone()
+        self.shared.read().unwrap().tags.clone()
     }
 }
