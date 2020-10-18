@@ -4,7 +4,7 @@ mod player_view;
 use std::io;
 use std::path::Path;
 
-use cursive::view::Resizable;
+use cursive::view::{Resizable, Scrollable};
 use cursive::views::LinearLayout;
 use cursive::Cursive;
 
@@ -45,7 +45,7 @@ impl UI {
 
         let player_bar = player_view::PlayerView::new(siv);
         let top_level_layout = LinearLayout::vertical()
-            .child(browser_layout.full_height())
+            .child(browser_layout.scrollable().full_height())
             .child(player_bar.fixed_height(1).full_width());
         top_level_layout
     }
