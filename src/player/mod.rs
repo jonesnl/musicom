@@ -1,7 +1,7 @@
 mod gstreamer;
-mod player_hdl;
+mod queue;
 
-pub use player_hdl::PlayerHdl;
+pub use self::gstreamer::GstPlayer as PlayerHdl;
 
 use std::path::PathBuf;
 
@@ -12,6 +12,7 @@ pub trait Player {
     fn get_stream_length(&self) -> Option<gst::ClockTime>;
     fn get_stream_position(&self) -> Option<gst::ClockTime>;
     fn get_tag_list(&self) -> gst::TagList;
+    fn add_song_to_queue<S: Into<PathBuf>>(&self, fname: S);
 }
 
 pub mod prelude {
