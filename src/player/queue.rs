@@ -1,7 +1,4 @@
-use std::path::{
-    Path,
-    PathBuf,
-};
+use std::path::{Path, PathBuf};
 
 #[derive(Default, Debug)]
 pub struct QueueItem {

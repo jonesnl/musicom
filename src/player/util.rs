@@ -21,9 +21,7 @@ pub fn is_audio_file_guess(path: &Path) -> bool {
 pub fn create_gst_uri(path: &Path) -> Option<String> {
     // The resulting URI must be an aboslute path, so canonicalize before converting to a URI
     let canonical_path: PathBuf = path.canonicalize().ok()?;
-    let uri_str = Url::from_file_path(canonical_path)
-        .ok()?
-        .into_string();
+    let uri_str = Url::from_file_path(canonical_path).ok()?.into_string();
 
     Some(uri_str)
 }

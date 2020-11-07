@@ -4,15 +4,15 @@ use std::path::PathBuf;
 
 use cursive::align::HAlign;
 use cursive::direction::Direction;
+use cursive::event::{AnyCb, Event, EventResult};
 use cursive::traits::*;
 use cursive::view::Selector;
 use cursive::views::{NamedView, Panel, SelectView};
 use cursive::{Printer, Rect, Vec2};
-use cursive::event::{AnyCb, Event, EventResult};
 
+use crate::player::is_audio_file_guess;
 use crate::player::prelude::*;
 use crate::player::PlayerHdl;
-use crate::player::is_audio_file_guess;
 
 pub struct FileBrowserView {
     select_view: SelectView,
@@ -64,12 +64,10 @@ impl View for FileBrowserView {
         let current_selection = (*self.select_view.selection().unwrap()).clone();
         full_path.push(current_selection);
         match e {
-            Event::Char('a') => {
-                EventResult::with_cb(move |siv| {
-                    let action_popup = get_action_popup(full_path.clone());
-                    siv.add_layer(action_popup);
-                })
-            },
+            Event::Char('a') => EventResult::with_cb(move |siv| {
+                let action_popup = get_action_popup(full_path.clone());
+                siv.add_layer(action_popup);
+            }),
             _ => self.select_view.on_event(e),
         }
     }
@@ -135,7 +133,8 @@ impl FileBrowserView {
                 } else {
                     false
                 }
-            }).collect::<Result<Vec<_>, io::Error>>()
+            })
+            .collect::<Result<Vec<_>, io::Error>>()
             .unwrap();
 
         entries.sort();
