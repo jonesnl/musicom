@@ -1,5 +1,6 @@
 mod gstreamer;
 mod queue;
+mod util;
 
 pub use self::gstreamer::GstPlayer as PlayerHdl;
 

@@ -6,10 +6,10 @@ use gst::glib;
 use gst::ClockTime;
 use gst::prelude::*;
 
-use url::Url;
-
 use super::Player;
 use super::queue::Queue;
+
+use super::util::create_gst_uri;
 
 lazy_static::lazy_static! {
     static ref PLAYBIN: gst::Element = 
@@ -92,10 +92,8 @@ impl GstPlayer {
                 .unwrap();
 
             if let Some(ref next_song) = shared_data_clone.write().unwrap().queue.next() {
-                let canonical_path: PathBuf = next_song.get_path().canonicalize().unwrap();
-                let uri = Url::from_file_path(canonical_path).unwrap().into_string();
-
-                playbin.set_property("uri", &uri).unwrap();
+                let uri_str = create_gst_uri(next_song.get_path()).unwrap();
+                playbin.set_property("uri", &uri_str).unwrap();
             }
             None
         }).unwrap();
@@ -108,11 +106,8 @@ impl Player for GstPlayer {
     fn play_file<S: Into<PathBuf>>(&self, fname: S) {
         self.stop();
 
-        // The resulting URI must be an aboslute path, so canonicalize before converting to a URI
-        let canonical_path: PathBuf = fname.into().canonicalize().unwrap();
-        let uri = Url::from_file_path(canonical_path).unwrap().into_string();
-
-        self.playbin.set_property("uri", &uri).unwrap();
+        let uri_str = create_gst_uri(&fname.into()).unwrap();
+        self.playbin.set_property("uri", &uri_str).unwrap();
 
         self.playbin.set_state(gst::State::Playing).unwrap();
     }
