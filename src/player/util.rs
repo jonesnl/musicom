@@ -1,32 +1,21 @@
 use std::path::{Path, PathBuf};
 
-use gst_pbutils::Discoverer;
-use gst::ClockTime;
-
 use url::Url;
 
-pub fn is_audio_file(path: &Path) -> bool {
-    let uri_str = if let Some(val) = create_gst_uri(path) {
-        val
-    } else {
-        return false;
-    };
-
-    // Ideally this should be less than a second for local queries, but it throws warnings if I do
-    // that...
-    let discoverer = Discoverer::new(ClockTime::from_seconds(1)).unwrap();
-    
-    let info = if let Ok(val) = discoverer.discover_uri(&uri_str) {
-        val
-    } else {
-        return false;
-    };
-
-    if !info.get_video_streams().is_empty() {
+pub fn is_audio_file_guess(path: &Path) -> bool {
+    if !path.exists() {
         return false;
     }
 
-    info.get_audio_streams().len() == 1
+    let guess = mime_guess::from_path(path);
+
+    let mime = if let Some(mime) = guess.first() {
+        mime
+    } else {
+        return false;
+    };
+
+    mime.type_() == "audio"
 }
 
 pub fn create_gst_uri(path: &Path) -> Option<String> {
@@ -53,29 +42,25 @@ mod test {
 
     #[test]
     fn test_mp3_discovery() {
-        gst::init().unwrap();
         let mp3_path = TOP_DIR.join("resources/test.mp3");
-        assert_eq!(is_audio_file(&mp3_path), true);
+        assert_eq!(is_audio_file_guess(&mp3_path), true);
     }
 
     #[test]
     fn test_ogg_discovery() {
-        gst::init().unwrap();
         let ogg_path = TOP_DIR.join("resources/test.ogg");
-        assert_eq!(is_audio_file(&ogg_path), true);
+        assert_eq!(is_audio_file_guess(&ogg_path), true);
     }
 
     #[test]
     fn test_webm_discovery() {
-        gst::init().unwrap();
         let webm_path = TOP_DIR.join("resources/test.webm");
-        assert_eq!(is_audio_file(&webm_path), false);
+        assert_eq!(is_audio_file_guess(&webm_path), false);
     }
 
     #[test]
     fn test_nonexistent_discovery() {
-        gst::init().unwrap();
         let nonexistent_path = TOP_DIR.join("resources/BLARG_I_DONT_EXIST.mp3");
-        assert_eq!(is_audio_file(&nonexistent_path), false);
+        assert_eq!(is_audio_file_guess(&nonexistent_path), false);
     }
 }

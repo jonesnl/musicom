@@ -1,5 +1,4 @@
 extern crate gstreamer as gst;
-extern crate gstreamer_pbutils as gst_pbutils;
 
 mod player;
 mod ui;
