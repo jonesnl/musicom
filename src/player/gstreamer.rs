@@ -91,9 +91,7 @@ impl GstPlayer {
                 .unwrap()
                 .unwrap();
 
-            eprintln!("before");
             if let Some(ref next_song) = shared_data_clone.write().unwrap().queue.next() {
-                eprintln!("jkjdjfkdjf {:?}", next_song);
                 let canonical_path: PathBuf = next_song.get_path().canonicalize().unwrap();
                 let uri = Url::from_file_path(canonical_path).unwrap().into_string();
 
@@ -156,7 +154,6 @@ impl Player for GstPlayer {
     fn add_song_to_queue<S: Into<PathBuf>>(&self, fname: S) {
         let queue = &mut self.shared.write().unwrap().queue;
         let fname = fname.into();
-        eprintln!("EHEHEH {:?}", fname);
         queue.add_song(&fname);
     }
 }
