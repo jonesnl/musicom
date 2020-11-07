@@ -11,7 +11,7 @@ pub struct QueueItem {
 #[derive(Default)]
 pub struct Queue {
     items: Vec<QueueItem>,
-    next_idx: Option<usize>,
+    cur_idx: Option<usize>,
 }
 
 impl QueueItem {
@@ -38,23 +38,22 @@ impl Queue {
     }
 
     pub fn next(&mut self) -> Option<&QueueItem> {
-        let ret = if let Some(ref mut idx) = self.next_idx {
-            let ret = self.items.get(*idx);
+        let next_song = if let Some(ref mut idx) = self.cur_idx {
             *idx += 1;
-            ret
+            self.items.get(*idx)
         } else {
-            None
+            self.cur_idx = Some(0);
+            self.items.get(0)
         };
 
-        if ret.is_none() {
-            self.next_idx = None;
+        if next_song.is_none() {
+            self.cur_idx = None;
         }
 
-        ret
+        next_song
     }
 
     pub fn add_song(&mut self, path: &Path) {
         self.items.push(QueueItem::new(path));
-        self.next_idx = Some(0);
     }
 }
