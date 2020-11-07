@@ -12,6 +12,7 @@ use cursive::event::{AnyCb, Event, EventResult};
 
 use crate::player::prelude::*;
 use crate::player::PlayerHdl;
+use crate::player::is_audio_file_guess;
 
 pub struct FileBrowserView {
     select_view: SelectView,
@@ -128,7 +129,13 @@ impl FileBrowserView {
         let mut entries = fs::read_dir(&self.directory)
             .unwrap()
             .map(|res| res.map(|e| e.path()))
-            .collect::<Result<Vec<_>, io::Error>>()
+            .filter(|res| {
+                if let Ok(path) = res {
+                    is_audio_file_guess(path) || path.is_dir()
+                } else {
+                    false
+                }
+            }).collect::<Result<Vec<_>, io::Error>>()
             .unwrap();
 
         entries.sort();
