@@ -7,7 +7,7 @@ use gst::ClockTime;
 use gst::prelude::*;
 
 use super::Player;
-use super::queue::Queue;
+use super::queue::{Queue, QueueItem};
 
 use super::util::create_gst_uri;
 
@@ -99,6 +99,13 @@ impl GstPlayer {
         }).unwrap();
 
         shared
+    }
+
+    // TODO is there a better way to pass this info out?
+    pub fn get_queue_info(&self) -> (Vec<QueueItem>, Option<usize>) {
+        let read_hdl = self.shared.read().unwrap();
+
+        (read_hdl.queue.get_queue_contents(), read_hdl.queue.get_queue_position())
     }
 }
 

@@ -1,8 +1,8 @@
 use std::path::{Path, PathBuf};
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct QueueItem {
-    path: PathBuf,
+    pub path: PathBuf,
 }
 
 #[derive(Default)]
@@ -52,5 +52,13 @@ impl Queue {
 
     pub fn add_song(&mut self, path: &Path) {
         self.items.push(QueueItem::new(path));
+    }
+
+    pub fn get_queue_contents(&self) -> Vec<QueueItem> {
+        self.items.clone()
+    }
+
+    pub fn get_queue_position(&self) -> Option<usize> {
+        self.cur_idx
     }
 }
