@@ -1,11 +1,12 @@
 mod file_browser;
 mod player_view;
+mod queue_view;
 
 use std::io;
 use std::path::Path;
 
 use cursive::view::{Resizable, Scrollable};
-use cursive::views::LinearLayout;
+use cursive::views::{LinearLayout, Panel};
 use cursive::Cursive;
 
 use crate::player::PlayerHdl;
@@ -39,8 +40,12 @@ impl UI {
 
     fn build_views(&self, siv: &mut Cursive, dir: &Path) -> LinearLayout {
         let file_browser_view = self::file_browser::FileBrowserView::new(dir);
+        let queue_view = self::queue_view::QueueView::new();
 
-        let browser_layout = LinearLayout::horizontal().child(file_browser_view.full_width());
+        let browser_layout = 
+            LinearLayout::horizontal()
+            .child(file_browser_view.full_width())
+            .child(Panel::new(queue_view).title("Queue").min_width(50).full_height());
         //.child(DebugView::default().scrollable().scroll_strategy(cursive::view::ScrollStrategy::StickToBottom).full_width());
 
         let player_bar = player_view::PlayerView::new(siv);
