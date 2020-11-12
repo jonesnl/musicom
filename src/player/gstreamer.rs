@@ -107,6 +107,12 @@ impl GstPlayer {
 
         (read_hdl.queue.get_queue_contents(), read_hdl.queue.get_queue_position())
     }
+
+    pub fn register_queue_change_cb(&mut self, cb: super::queue::NotifierCb) {
+        let mut write_hdl = self.shared.write().unwrap();
+
+        write_hdl.queue.register_queue_change_cb(cb);
+    }
 }
 
 impl Player for GstPlayer {

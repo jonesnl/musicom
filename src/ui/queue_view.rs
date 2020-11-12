@@ -52,7 +52,7 @@ impl View for QueueView {
 }
 
 impl QueueView {
-    pub fn new() -> impl View {
+    pub fn new(siv: &cursive::Cursive) -> impl View {
         let select_view = SelectView::new().h_align(HAlign::Center);
         let mut qv = Self {
             select_view,
@@ -60,16 +60,17 @@ impl QueueView {
         };
 
         qv.refresh_view();
-        let named_view = qv.with_name("queue_view");
 
-        let event_wrapped_view = OnEventView::new(named_view)
-            .on_event('r', |s| {
-                s.call_on_name("queue_view", |view: &mut QueueView| {
+        let cb_sink = siv.cb_sink().clone();
+        qv.player.register_queue_change_cb(Box::new(move || {
+            cb_sink.send(Box::new(|siv| {
+                siv.call_on_name("queue_view", |view: &mut QueueView| {
                     view.refresh_view();
                 });
-            });
+            })).unwrap();
+        }));
 
-        event_wrapped_view
+        qv.with_name("queue_view")
     }
 
     fn refresh_view(&mut self) {
