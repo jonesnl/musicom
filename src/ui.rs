@@ -40,7 +40,7 @@ impl UI {
 
     fn build_views(&self, siv: &mut Cursive, dir: &Path) -> LinearLayout {
         let file_browser_view = self::file_browser::FileBrowserView::new(dir);
-        let queue_view = self::queue_view::QueueView::new();
+        let queue_view = self::queue_view::QueueView::new(siv);
 
         let browser_layout = 
             LinearLayout::horizontal()
