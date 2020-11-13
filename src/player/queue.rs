@@ -1,5 +1,7 @@
 use std::path::{Path, PathBuf};
 
+use crate::util::{Notifier, NotifierCb};
+
 #[derive(Default, Debug, Clone)]
 pub struct QueueItem {
     pub path: PathBuf,
@@ -24,6 +26,7 @@ impl QueueItem {
     }
 }
 
+#[allow(dead_code)]
 impl Queue {
     pub fn new() -> Self {
         Queue {
@@ -68,30 +71,5 @@ impl Queue {
 
     pub fn register_queue_change_cb(&mut self, cb: NotifierCb) {
         self.notifier.register(cb);
-    }
-}
-
-/////////////////
-
-pub type NotifierCb = Box<dyn Fn() + Send + Sync + 'static>;
-
-#[derive(Default)]
-struct Notifier {
-    subscribers: Vec<NotifierCb>,
-}
-
-impl Notifier {
-    fn new() -> Self {
-        Self {
-            subscribers: Vec::new(),
-        }
-    }
-
-    fn register(&mut self, cb: NotifierCb) {
-        self.subscribers.push(cb);
-    }
-
-    fn notify(&self) {
-        self.subscribers.iter().for_each(|cb| cb());
     }
 }

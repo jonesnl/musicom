@@ -2,6 +2,7 @@ extern crate gstreamer as gst;
 
 mod player;
 mod ui;
+mod util;
 
 use std::env;
 
