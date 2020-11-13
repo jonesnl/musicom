@@ -3,7 +3,7 @@ use cursive::direction::Direction;
 use cursive::event::{AnyCb, Event, EventResult};
 use cursive::traits::*;
 use cursive::view::Selector;
-use cursive::views::{OnEventView, SelectView};
+use cursive::views::SelectView;
 use cursive::{Printer, Rect, Vec2};
 
 use crate::player::PlayerHdl;
@@ -62,7 +62,7 @@ impl QueueView {
         qv.refresh_view();
 
         let cb_sink = siv.cb_sink().clone();
-        qv.player.register_queue_change_cb(Box::new(move || {
+        qv.player.queue_mut().register_queue_change_cb(Box::new(move || {
             cb_sink.send(Box::new(|siv| {
                 siv.call_on_name("queue_view", |view: &mut QueueView| {
                     view.refresh_view();
@@ -76,7 +76,7 @@ impl QueueView {
     fn refresh_view(&mut self) {
         self.select_view.clear();
 
-        let (queue, _idx) = self.player.get_queue_info();
+        let queue = self.player.queue().get_queue_contents();
 
         if queue.is_empty() {
             self.select_view.add_item_str("Empty");

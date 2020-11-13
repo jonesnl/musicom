@@ -1,13 +1,13 @@
 use std::path::PathBuf;
 use std::thread;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use gst::glib;
 use gst::ClockTime;
 use gst::prelude::*;
 
 use super::Player;
-use super::queue::{Queue, QueueItem};
+use super::queue::Queue;
 
 use super::util::create_gst_uri;
 
@@ -16,18 +16,19 @@ lazy_static::lazy_static! {
         gst::ElementFactory::make("playbin", Some("play")).unwrap();
     static ref SHARED_STATE: Arc<RwLock<SharedPlayerContents>> = 
         GstPlayer::construct_shared_state();
+    static ref QUEUE: Arc<RwLock<Queue>> = Arc::new(RwLock::new(Queue::new()));
 }
 
 struct SharedPlayerContents {
     glib_loop: gst::glib::MainLoop,
     tags: gst::TagList,
-    queue: Queue,
 }
 
 #[derive(Clone)]
 pub struct GstPlayer {
     playbin: gst::Element,
     shared: Arc<RwLock<SharedPlayerContents>>,
+    queue: Arc<RwLock<Queue>>,
 }
 
 impl Drop for SharedPlayerContents {
@@ -42,6 +43,7 @@ impl GstPlayer {
         Self {
             playbin: PLAYBIN.clone(),
             shared: SHARED_STATE.clone(),
+            queue: QUEUE.clone(),
         }
     }
 
@@ -50,8 +52,8 @@ impl GstPlayer {
         let shared = Arc::new(RwLock::new(SharedPlayerContents {
             glib_loop: glib::MainLoop::new(None, false),
             tags: gst::TagList::new(),
-            queue: Queue::new(),
         }));
+        let queue = QUEUE.clone();
 
         {
             let locked_state = shared.write().unwrap();
@@ -84,14 +86,13 @@ impl GstPlayer {
             None
         }).unwrap();
 
-        let shared_data_clone = shared.clone();
         playbin.connect("about-to-finish", false, move |args| {
             let playbin = args[0]
                 .get::<gst::Element>()
                 .unwrap()
                 .unwrap();
 
-            if let Some(ref next_song) = shared_data_clone.write().unwrap().queue.next() {
+            if let Some(ref next_song) = queue.write().unwrap().next() {
                 let uri_str = create_gst_uri(next_song.get_path()).unwrap();
                 playbin.set_property("uri", &uri_str).unwrap();
             }
@@ -101,17 +102,14 @@ impl GstPlayer {
         shared
     }
 
-    // TODO is there a better way to pass this info out?
-    pub fn get_queue_info(&self) -> (Vec<QueueItem>, Option<usize>) {
-        let read_hdl = self.shared.read().unwrap();
-
-        (read_hdl.queue.get_queue_contents(), read_hdl.queue.get_queue_position())
+    // Return an impl trait rather than the lock handle itself to hide implementation details
+    pub fn queue(&self) -> RwLockReadGuard<Queue> {
+        self.queue.read().unwrap()
     }
 
-    pub fn register_queue_change_cb(&mut self, cb: super::queue::NotifierCb) {
-        let mut write_hdl = self.shared.write().unwrap();
-
-        write_hdl.queue.register_queue_change_cb(cb);
+    // Return an impl trait rather than the lock handle itself to hide implementation details
+    pub fn queue_mut(&self) -> RwLockWriteGuard<Queue> {
+        self.queue.write().unwrap()
     }
 }
 
@@ -160,8 +158,7 @@ impl Player for GstPlayer {
     }
 
     fn add_song_to_queue<S: Into<PathBuf>>(&self, fname: S) {
-        let queue = &mut self.shared.write().unwrap().queue;
         let fname = fname.into();
-        queue.add_song(&fname);
+        self.queue_mut().add_song(&fname);
     }
 }
