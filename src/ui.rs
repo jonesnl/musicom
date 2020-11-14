@@ -10,7 +10,6 @@ use cursive::views::{LinearLayout, Panel};
 use cursive::Cursive;
 
 use crate::player::PlayerHdl;
-use crate::player::prelude::*;
 
 pub struct UI {
     player: PlayerHdl,
