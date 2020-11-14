@@ -11,7 +11,6 @@ use cursive::views::{NamedView, Panel, SelectView};
 use cursive::{Printer, Rect, Vec2};
 
 use crate::player::is_audio_file_guess;
-use crate::player::prelude::*;
 use crate::player::PlayerHdl;
 
 pub struct FileBrowserView {

@@ -10,7 +10,6 @@ use gst::ClockTime;
 
 use super::now_playing::NowPlaying;
 use super::queue::Queue;
-use super::Player;
 
 use super::util::create_gst_uri;
 
@@ -169,10 +168,8 @@ impl GstPlayer {
     pub fn now_playing_mut(&self) -> RwLockWriteGuard<NowPlaying> {
         self.now_playing.write().unwrap()
     }
-}
 
-impl Player for GstPlayer {
-    fn play_file<S: Into<PathBuf>>(&self, fname: S) {
+    pub fn play_file<S: Into<PathBuf>>(&self, fname: S) {
         self.stop();
 
         let uri_str = create_gst_uri(&fname.into()).unwrap();
@@ -181,14 +178,14 @@ impl Player for GstPlayer {
         self.playbin.set_state(gst::State::Playing).unwrap();
     }
 
-    fn stop(&self) {
+    pub fn stop(&self) {
         // Shutdown playbin
         self.playbin
             .set_state(gst::State::Null)
             .expect("Unable to set the pipeline to the `Null` state");
     }
 
-    fn toggle_play_pause(&self) {
+    pub fn toggle_play_pause(&self) {
         let (_, cur_state, _) = self.playbin.get_state(ClockTime::from_mseconds(50));
         match cur_state {
             gst::State::Playing => {
@@ -203,15 +200,7 @@ impl Player for GstPlayer {
         }
     }
 
-    fn get_stream_position(&self) -> Option<gst::ClockTime> {
-        self.playbin.query_position::<gst::ClockTime>()
-    }
-
-    fn get_stream_length(&self) -> Option<gst::ClockTime> {
-        self.playbin.query_duration::<gst::ClockTime>()
-    }
-
-    fn add_song_to_queue<S: Into<PathBuf>>(&self, fname: S) {
+    pub fn add_song_to_queue<S: Into<PathBuf>>(&self, fname: S) {
         let fname = fname.into();
         self.queue_mut().add_song(&fname);
     }
