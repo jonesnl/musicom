@@ -7,11 +7,17 @@ use cursive::direction::Direction;
 use cursive::event::{AnyCb, Event, EventResult};
 use cursive::traits::*;
 use cursive::view::Selector;
-use cursive::views::{NamedView, Panel, SelectView};
+use cursive::views::{Dialog, NamedView, Panel, SelectView};
 use cursive::{Printer, Rect, Vec2};
 
 use crate::player::is_audio_file_guess;
 use crate::player::PlayerHdl;
+
+const HELP_TEXT: &'static str = "\
+Press <Enter> to start playing a file, or browse between folders
+Press <a> to open the action menu for a file
+Press <p> to pause/play the current song
+Press <?> to open this help menu";
 
 pub struct FileBrowserView {
     select_view: SelectView,
@@ -67,6 +73,10 @@ impl View for FileBrowserView {
                 let action_popup = get_action_popup(full_path.clone());
                 siv.add_layer(action_popup);
             }),
+            Event::Char('?') => EventResult::with_cb(move |siv| {
+                let help_popup = Self::get_help_view();
+                siv.add_layer(help_popup);
+            }),
             _ => self.select_view.on_event(e),
         }
     }
@@ -119,6 +129,10 @@ impl FileBrowserView {
                 }
             });
         });
+    }
+
+    fn get_help_view() -> impl View {
+        Dialog::info(HELP_TEXT)
     }
 
     fn refresh_view(&mut self) {
