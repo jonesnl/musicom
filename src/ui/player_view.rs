@@ -1,9 +1,9 @@
 use chrono::Duration;
 
 use cursive::align::HAlign;
+use cursive::traits::*;
 use cursive::view::ViewWrapper;
 use cursive::views::{DummyView, LinearLayout, TextContent, TextView};
-use cursive::traits::*;
 use cursive::Cursive;
 
 use crate::player::PlayerHdl;
@@ -29,30 +29,33 @@ impl PlayerView {
     fn setup_stream_poller(&mut self, siv: &Cursive) {
         let cb_sink = siv.cb_sink().clone();
 
-        self.player_hdl.now_playing_mut().register_changed_cb(Box::new(move || {
-            cb_sink.send(Box::new(|siv| {
-                siv.call_on_name("player_view", |view: &mut PlayerView| {
-                    let stream_position = &view.stream_position;
-                    let now_playing = &view.now_playing;
-                    let now_playing_hdl = view.player_hdl.now_playing();
-                    let (position, duration) = now_playing_hdl.get_song_progress();
-                    let song_name = now_playing_hdl.get_song_name();
-                    let position_string = format!("{}/{}", format_time(position), format_time(duration));
+        self.player_hdl
+            .now_playing_mut()
+            .register_changed_cb(Box::new(move || {
+                cb_sink
+                    .send(Box::new(|siv| {
+                        siv.call_on_name("player_view", |view: &mut PlayerView| {
+                            let stream_position = &view.stream_position;
+                            let now_playing = &view.now_playing;
+                            let now_playing_hdl = view.player_hdl.now_playing();
+                            let (position, duration) = now_playing_hdl.get_song_progress();
+                            let song_name = now_playing_hdl.get_song_name();
+                            let position_string =
+                                format!("{}/{}", format_time(position), format_time(duration));
 
-                    if stream_position.get_content().source() != position_string {
-                        stream_position.set_content(position_string);
-                    }
+                            if stream_position.get_content().source() != position_string {
+                                stream_position.set_content(position_string);
+                            }
 
-                    let title = format!("Now Playing: \"{}\"", song_name);
+                            let title = format!("Now Playing: \"{}\"", song_name);
 
-                    if now_playing.get_content().source() != title {
-                        now_playing.set_content(title);
-                    }
-
-                });
-            })).unwrap();
-        }));
-
+                            if now_playing.get_content().source() != title {
+                                now_playing.set_content(title);
+                            }
+                        });
+                    }))
+                    .unwrap();
+            }));
     }
 
     pub fn new(siv: &Cursive) -> impl View {
@@ -62,19 +65,16 @@ impl PlayerView {
 
         let mut linear_layout = LinearLayout::horizontal();
         // DummyView is used to center the now_playing_view
-        linear_layout.add_child(
-            DummyView{}
-            .full_width()
-        );
+        linear_layout.add_child(DummyView {}.full_width());
         linear_layout.add_child(
             TextView::new_with_content(now_playing.clone())
-            .h_align(HAlign::Center)
-            .full_width()
+                .h_align(HAlign::Center)
+                .full_width(),
         );
         linear_layout.add_child(
             TextView::new_with_content(stream_position.clone())
-            .h_align(HAlign::Right)
-            .full_width()
+                .h_align(HAlign::Right)
+                .full_width(),
         );
 
         let mut pv = PlayerView {

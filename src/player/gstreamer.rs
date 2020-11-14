@@ -129,7 +129,10 @@ impl GstPlayer {
                 });
 
             if (new_position != old_position) || (new_duration != old_duration) {
-                NOW_PLAYING.write().unwrap().set_progress(new_position, new_duration);
+                NOW_PLAYING
+                    .write()
+                    .unwrap()
+                    .set_progress(new_position, new_duration);
             }
 
             glib::Continue(true)

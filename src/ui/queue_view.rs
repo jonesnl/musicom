@@ -62,13 +62,17 @@ impl QueueView {
         qv.refresh_view();
 
         let cb_sink = siv.cb_sink().clone();
-        qv.player.queue_mut().register_queue_change_cb(Box::new(move || {
-            cb_sink.send(Box::new(|siv| {
-                siv.call_on_name("queue_view", |view: &mut QueueView| {
-                    view.refresh_view();
-                });
-            })).unwrap();
-        }));
+        qv.player
+            .queue_mut()
+            .register_queue_change_cb(Box::new(move || {
+                cb_sink
+                    .send(Box::new(|siv| {
+                        siv.call_on_name("queue_view", |view: &mut QueueView| {
+                            view.refresh_view();
+                        });
+                    }))
+                    .unwrap();
+            }));
 
         qv.with_name("queue_view")
     }
