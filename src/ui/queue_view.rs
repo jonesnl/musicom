@@ -1,10 +1,7 @@
 use cursive::align::HAlign;
-use cursive::direction::Direction;
-use cursive::event::{AnyCb, Event, EventResult};
 use cursive::traits::*;
-use cursive::view::Selector;
+use cursive::view::ViewWrapper;
 use cursive::views::SelectView;
-use cursive::{Printer, Rect, Vec2};
 
 use crate::player::PlayerHdl;
 
@@ -13,42 +10,8 @@ pub struct QueueView {
     player: PlayerHdl,
 }
 
-impl View for QueueView {
-    fn draw(&self, printer: &Printer) {
-        self.select_view.draw(printer);
-    }
-
-    fn layout(&mut self, xy: Vec2) {
-        self.select_view.layout(xy);
-    }
-
-    fn needs_relayout(&self) -> bool {
-        self.select_view.needs_relayout()
-    }
-
-    fn required_size(&mut self, constraint: Vec2) -> Vec2 {
-        self.select_view.required_size(constraint)
-    }
-
-    fn on_event(&mut self, e: Event) -> EventResult {
-        self.select_view.on_event(e)
-    }
-
-    fn call_on_any<'a>(&mut self, s: &Selector<'_>, cb: AnyCb<'a>) {
-        self.select_view.call_on_any(s, cb);
-    }
-
-    fn focus_view(&mut self, s: &Selector<'_>) -> Result<(), ()> {
-        self.select_view.focus_view(s)
-    }
-
-    fn take_focus(&mut self, source: Direction) -> bool {
-        self.select_view.take_focus(source)
-    }
-
-    fn important_area(&self, view_size: Vec2) -> Rect {
-        self.select_view.important_area(view_size)
-    }
+impl ViewWrapper for QueueView {
+    cursive::wrap_impl!(self.select_view: SelectView);
 }
 
 impl QueueView {
