@@ -1,12 +1,11 @@
+use chrono::Duration;
+
 use cursive::align::HAlign;
 use cursive::view::ViewWrapper;
 use cursive::views::{DummyView, LinearLayout, TextContent, TextView};
 use cursive::traits::*;
 use cursive::Cursive;
 
-use gst::glib;
-
-use crate::player::prelude::*;
 use crate::player::PlayerHdl;
 
 pub struct PlayerView {
@@ -16,12 +15,9 @@ pub struct PlayerView {
     linear_layout: LinearLayout,
 }
 
-fn format_time(time: gst::ClockTime) -> String {
-    if time.is_none() {
-        return "00:00".to_string();
-    }
-    let minutes = time.minutes().unwrap();
-    let seconds = time.seconds().unwrap() % 60;
+fn format_time(time: Duration) -> String {
+    let minutes = time.num_minutes();
+    let seconds = time.num_seconds() % 60;
     format!("{:02}:{:02}", minutes, seconds)
 }
 
@@ -31,54 +27,35 @@ impl ViewWrapper for PlayerView {
 
 impl PlayerView {
     fn setup_stream_poller(&mut self, siv: &Cursive) {
-        let stream_position = self.stream_position.clone();
-        let now_playing = self.now_playing.clone();
-        let player_hdl = self.player_hdl.clone();
-        let timeout_sink = siv.cb_sink().clone();
+        let cb_sink = siv.cb_sink().clone();
 
-        glib::timeout_add(100, move || {
-            let mut changed = false;
+        self.player_hdl.now_playing_mut().register_changed_cb(Box::new(move || {
+            cb_sink.send(Box::new(|siv| {
+                siv.call_on_name("player_view", |view: &mut PlayerView| {
+                    let stream_position = &view.stream_position;
+                    let now_playing = &view.now_playing;
+                    let now_playing_hdl = view.player_hdl.now_playing();
+                    let (position, duration) = now_playing_hdl.get_song_progress();
+                    let song_name = now_playing_hdl.get_song_name();
+                    let position_string = format!("{}/{}", format_time(position), format_time(duration));
 
-            let phc = &player_hdl;
-            let position_string = match (phc.get_stream_length(), phc.get_stream_position()) {
-                (Some(len), Some(pos)) => {
-                    format!(
-                        "{}/{}",
-                        format_time(pos),
-                        format_time(len),
-                    )
-                },
-                _ => {"00:00/00:00".to_string()},
-            };
+                    if stream_position.get_content().source() != position_string {
+                        stream_position.set_content(position_string);
+                    }
 
-            if stream_position.get_content().source() != position_string {
-                stream_position.set_content(position_string);
-                changed = true;
-            }
+                    let title = format!("Now Playing: \"{}\"", song_name);
 
-            let tags = player_hdl.get_tag_list();
-            let title = if let Some(title) = tags.get::<gst::tags::Title>() {
-                title.get().unwrap_or("None").to_string()
-            } else {
-                "None".to_string()
-            };
+                    if now_playing.get_content().source() != title {
+                        now_playing.set_content(title);
+                    }
 
-            let title = format!("Now Playing: \"{}\"", title);
+                });
+            })).unwrap();
+        }));
 
-            if now_playing.get_content().source() != title {
-                now_playing.set_content(title);
-                changed = true;
-            }
-
-            if changed {
-                timeout_sink.send(Box::new(cursive::Cursive::noop)).unwrap();
-            }
-
-            glib::Continue(true)
-        });
     }
 
-    pub fn new(siv: &Cursive) -> Self {
+    pub fn new(siv: &Cursive) -> impl View {
         let stream_position = TextContent::new("");
         let now_playing = TextContent::new("");
         let player_hdl = PlayerHdl::new();
@@ -109,6 +86,6 @@ impl PlayerView {
 
         pv.setup_stream_poller(siv);
 
-        pv
+        pv.with_name("player_view")
     }
 }
