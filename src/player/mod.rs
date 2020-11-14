@@ -1,4 +1,5 @@
 mod gstreamer;
+mod now_playing;
 mod queue;
 mod util;
 
@@ -13,7 +14,6 @@ pub trait Player {
     fn stop(&self);
     fn get_stream_length(&self) -> Option<gst::ClockTime>;
     fn get_stream_position(&self) -> Option<gst::ClockTime>;
-    fn get_tag_list(&self) -> gst::TagList;
     fn add_song_to_queue<S: Into<PathBuf>>(&self, fname: S);
 }
 
