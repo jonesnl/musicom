@@ -1,0 +1,10 @@
+# musicom
+A terminal music player written in Rust.
+
+# Features
+Currently, musicom has a file browser to play music files from, and a rudimentary queue to play songs one after another.
+
+Use `<?>` to get help text on available commands in musicom.
+
+# Dependencies
+musicom depends on `gstreamer` to play music under the hood, and `ncurses` to draw to the terminal.
