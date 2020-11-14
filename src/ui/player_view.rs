@@ -35,23 +35,7 @@ impl PlayerView {
                 cb_sink
                     .send(Box::new(|siv| {
                         siv.call_on_name("player_view", |view: &mut PlayerView| {
-                            let stream_position = &view.stream_position;
-                            let now_playing = &view.now_playing;
-                            let now_playing_hdl = view.player_hdl.now_playing();
-                            let (position, duration) = now_playing_hdl.get_song_progress();
-                            let song_name = now_playing_hdl.get_song_name();
-                            let position_string =
-                                format!("{}/{}", format_time(position), format_time(duration));
-
-                            if stream_position.get_content().source() != position_string {
-                                stream_position.set_content(position_string);
-                            }
-
-                            let title = format!("Now Playing: \"{}\"", song_name);
-
-                            if now_playing.get_content().source() != title {
-                                now_playing.set_content(title);
-                            }
+                            view.refresh_view()
                         });
                     }))
                     .unwrap();
@@ -86,6 +70,34 @@ impl PlayerView {
 
         pv.setup_stream_poller(siv);
 
+        pv.refresh_view();
+
         pv.with_name("player_view")
+    }
+
+    pub fn refresh_view(&mut self) {
+        let stream_position = &self.stream_position;
+        let now_playing = &self.now_playing;
+        let now_playing_hdl = self.player_hdl.now_playing();
+        let (position, duration) = now_playing_hdl.get_song_progress();
+        let song_name = now_playing_hdl.get_song_name();
+        let position_string =
+            format!("{}/{}", format_time(position), format_time(duration));
+
+        if stream_position.get_content().source() != position_string {
+            stream_position.set_content(position_string);
+        }
+
+        let song_name = if song_name.is_empty() {
+            "None".to_string()
+        } else {
+            song_name
+        };
+
+        let title = format!("Now Playing: \"{}\"", song_name);
+
+        if now_playing.get_content().source() != title {
+            now_playing.set_content(title);
+        }
     }
 }
