@@ -25,27 +25,6 @@ pub struct FileBrowserView {
     player: PlayerHdl,
 }
 
-fn get_action_popup(current_selection: PathBuf) -> impl View {
-    enum Actions {
-        PlayNow,
-        AddToQueue,
-    };
-    let mut action_popup = SelectView::new();
-    action_popup.add_item("Add to queue", Actions::AddToQueue);
-    action_popup.add_item("Play Now", Actions::PlayNow);
-
-    action_popup.set_on_submit(move |s, action| {
-        let player = PlayerHdl::new();
-        match action {
-            Actions::PlayNow => player.play_file(current_selection.clone()),
-            Actions::AddToQueue => player.add_song_to_queue(&current_selection.clone()),
-        }
-        s.pop_layer();
-    });
-
-    Panel::new(action_popup)
-}
-
 // Implement the View wrapper by hand so we can intercept on_event calls
 impl View for FileBrowserView {
     fn draw(&self, printer: &Printer) {
@@ -65,12 +44,9 @@ impl View for FileBrowserView {
     }
 
     fn on_event(&mut self, e: Event) -> EventResult {
-        let mut full_path = self.directory.clone();
-        let current_selection = (*self.select_view.selection().unwrap()).clone();
-        full_path.push(current_selection);
         match e {
             Event::Char('a') => EventResult::with_cb(move |siv| {
-                let action_popup = get_action_popup(full_path.clone());
+                let action_popup = self.get_action_popup();
                 siv.add_layer(action_popup);
             }),
             Event::Char('?') => EventResult::with_cb(move |siv| {
@@ -159,5 +135,29 @@ impl FileBrowserView {
                 format!("{}", p.file_name().unwrap().to_str().unwrap())
             }
         }));
+    }
+
+    fn get_action_view(&self, current_selection: PathBuf) -> impl View {
+        let mut full_path = self.directory.clone();
+        let current_selection = (*self.select_view.selection().unwrap()).clone();
+        full_path.push(current_selection);
+        enum Actions {
+            PlayNow,
+            AddToQueue,
+        };
+        let mut action_popup = SelectView::new();
+        action_popup.add_item("Add to queue", Actions::AddToQueue);
+        action_popup.add_item("Play Now", Actions::PlayNow);
+
+        action_popup.set_on_submit(move |s, action| {
+            let player = PlayerHdl::new();
+            match action {
+                Actions::PlayNow => player.play_file(full_path.clone()),
+                Actions::AddToQueue => player.add_song_to_queue(&full_path),
+            }
+            s.pop_layer();
+        });
+
+        Panel::new(action_popup)
     }
 }
