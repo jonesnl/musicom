@@ -45,10 +45,13 @@ impl View for FileBrowserView {
 
     fn on_event(&mut self, e: Event) -> EventResult {
         match e {
-            Event::Char('a') => EventResult::with_cb(move |siv| {
-                let action_popup = self.get_action_popup();
-                siv.add_layer(action_popup);
-            }),
+            Event::Char('a') => {
+                let path = self.get_current_selection();
+                EventResult::with_cb(move |siv| {
+                    let action_popup = Self::get_action_view(&path);
+                    siv.add_layer(action_popup);
+                })
+            },
             Event::Char('?') => EventResult::with_cb(move |siv| {
                 let help_popup = Self::get_help_view();
                 siv.add_layer(help_popup);
@@ -137,10 +140,18 @@ impl FileBrowserView {
         }));
     }
 
-    fn get_action_view(&self, current_selection: PathBuf) -> impl View {
+    fn get_current_selection(&self) -> PathBuf {
         let mut full_path = self.directory.clone();
         let current_selection = (*self.select_view.selection().unwrap()).clone();
         full_path.push(current_selection);
+        full_path
+    }
+
+    fn get_action_view<PB>(item_path: PB) -> impl View
+    where
+        PB: Into<PathBuf>,
+    {
+        let item_path = item_path.into();
         enum Actions {
             PlayNow,
             AddToQueue,
@@ -152,8 +163,8 @@ impl FileBrowserView {
         action_popup.set_on_submit(move |s, action| {
             let player = PlayerHdl::new();
             match action {
-                Actions::PlayNow => player.play_file(full_path.clone()),
-                Actions::AddToQueue => player.add_song_to_queue(&full_path),
+                Actions::PlayNow => player.play_file(&item_path),
+                Actions::AddToQueue => player.add_song_to_queue(&item_path),
             }
             s.pop_layer();
         });
