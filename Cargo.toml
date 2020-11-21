@@ -9,11 +9,12 @@ edition = "2018"
 [dependencies]
 chrono = "0.4.19"
 cursive = "0.15"
-diesel = { version = "1.4.5", features = ["sqlite"]}
-diesel_migrations = "1.4.0"
 gstreamer = "0.16.2"
 gstreamer-pbutils = "0.16.2"
 log = "0.4.11"
 url = "2.1.1"
 lazy_static = "1.4.0"
 mime_guess = "2.0.3"
+diesel = { version = "1.4", features = ["sqlite"] }
+diesel_migrations = "1.4"
+directories = "3.0"

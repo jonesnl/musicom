@@ -8,3 +8,6 @@ Use `<?>` to get help text on available commands in musicom.
 
 # Dependencies
 musicom depends on `gstreamer` to play music under the hood, and `ncurses` to draw to the terminal.
+
+# Developing
+`dev_env.bash` can be sourced to point `diesel_cli` at the musicom database without having to specify it manually.
