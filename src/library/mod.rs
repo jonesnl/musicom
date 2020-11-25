@@ -1,4 +1,4 @@
 mod library;
-mod types;
+pub mod types;
 
 pub use library::Library;
