@@ -36,7 +36,7 @@ pub fn get_database_path() -> PathBuf {
 
     let config_dir = dirs.config_dir();
 
-    fs::create_dir_all(config_dir.parent().unwrap()).unwrap();
+    fs::create_dir_all(config_dir).unwrap();
 
     config_dir.join("database.sqlite")
 }
