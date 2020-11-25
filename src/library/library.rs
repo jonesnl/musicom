@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::collections::VecDeque;
 
 use diesel::prelude::*;
@@ -5,8 +6,8 @@ use diesel::sqlite::SqliteConnection;
 
 use crate::util::get_database_path;
 
-use super::types::{Track, TrackNoId};
-use crate::schema::tracks;
+use super::types::{Track, TrackNoId, TrackedPath, TrackedPathNoId};
+use crate::schema::{tracked_paths, tracks};
 
 // Embed the migrations defined at the root of the crate here.
 diesel_migrations::embed_migrations!();
@@ -16,6 +17,7 @@ pub struct Library {
     db: SqliteConnection,
 }
 
+#[allow(dead_code)]
 impl Library {
     pub fn new() -> Self {
         let path;
@@ -65,6 +67,35 @@ impl Library {
             .unwrap()
             as usize
     }
+
+    pub fn add_tracked_path<PB>(&self, pb: PB) -> Result<(), ()>
+    where
+        PB: Into<PathBuf>
+    {
+        // Get PathBuf
+        let pb = pb.into();
+
+        let tp = TrackedPathNoId {
+            path: pb.into(),
+        };
+
+        tp.insert_into(tracked_paths::table)
+            .execute(&self.db)
+            .unwrap_or_else(|e| {
+                log::warn!("Could not track directory: {}", e);
+                0
+            });
+
+        Ok(())
+    }
+
+    pub fn iter_tracked_paths(&self) -> TrackedPathIter {
+        let tracked_paths: VecDeque<TrackedPath> = tracked_paths::table.load(&self.db).unwrap().into();
+
+        TrackedPathIter {
+            tracked_paths,
+        }
+    }
 }
 
 pub struct TrackIter {
@@ -79,12 +110,25 @@ impl Iterator for TrackIter {
     }
 }
 
+pub struct TrackedPathIter {
+    tracked_paths: VecDeque<TrackedPath>,
+}
+
+impl Iterator for TrackedPathIter {
+    type Item = TrackedPath;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.tracked_paths.pop_front()
+    }
+
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
 
     use lazy_static::lazy_static;
-
+    use super::super::types::LibraryPath;
 
     lazy_static! {
         static ref TEST_TRACK_LIST: [TrackNoId; 2] = [
@@ -126,6 +170,23 @@ mod test {
         for (track1, track2) in lib.iter_tracks().zip(TEST_TRACK_LIST.iter()) {
             let track1noid: TrackNoId = track1.into();
             assert_eq!(track1noid, *track2, "Tracks aren't equal");
+        }
+    }
+
+    #[test]
+    fn library_tracked_paths() {
+        let lib = Library::new();
+        let tracked_paths: [PathBuf; 2] = [
+            "/tmp/test1".into(),
+            "/tmp/test2".into(),
+        ];
+
+        for path in tracked_paths.iter() {
+            lib.add_tracked_path(path).unwrap();
+        }
+
+        for (tracked_path, path) in lib.iter_tracked_paths().zip(tracked_paths.iter()) {
+            assert_eq!(tracked_path.path, path.into(), "Paths not in database");
         }
     }
 }
