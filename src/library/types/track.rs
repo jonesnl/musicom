@@ -3,7 +3,7 @@ use crate::schema::tracks;
 use super::LibraryPath;
 
 /// Track is used as the target data structure for a database query.
-#[derive(Queryable)]
+#[derive(Queryable, Clone, PartialEq, Debug)]
 pub struct Track {
     pub id: i32,
     #[column_name = "path_"]
@@ -13,11 +13,21 @@ pub struct Track {
 }
 
 /// TrackNoId is used to insert a track into the database, having it's ID be auto-selected for you.
-#[derive(Insertable)]
+#[derive(Insertable, Clone, PartialEq, Debug)]
 #[table_name="tracks"]
 pub struct TrackNoId {
     #[column_name = "path_"]
     pub path: LibraryPath,
     pub name: String,
     pub artist: Option<String>,
+}
+
+impl From<Track> for TrackNoId {
+    fn from(t: Track) -> Self {
+        TrackNoId {
+            path: t.path,
+            name: t.name,
+            artist: t.artist,
+        }
+    }
 }
