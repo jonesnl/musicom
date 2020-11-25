@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use std::collections::VecDeque;
+use std::path::PathBuf;
 
 use diesel::prelude::*;
 use diesel::sqlite::SqliteConnection;
@@ -31,9 +31,7 @@ impl Library {
 
         embedded_migrations::run(&db).expect("Could not ensure database schema is correct");
 
-        Self {
-            db,
-        }
+        Self { db }
     }
 
     pub fn add_track(&self, track: TrackNoId) -> Result<(), ()> {
@@ -50,34 +48,25 @@ impl Library {
     pub fn iter_tracks(&self) -> TrackIter {
         let tracks: VecDeque<Track> = tracks::table.load(&self.db).unwrap().into();
 
-        TrackIter {
-            tracks
-        }
+        TrackIter { tracks }
     }
 
     pub fn get_track(&self, id: i32) -> Option<Track> {
-        tracks::table.find(id)
-            .first(&self.db)
-            .ok()
+        tracks::table.find(id).first(&self.db).ok()
     }
-    
+
     pub fn get_track_count(&self) -> usize {
-        tracks::table.count()
-            .first::<i64>(&self.db)
-            .unwrap()
-            as usize
+        tracks::table.count().first::<i64>(&self.db).unwrap() as usize
     }
 
     pub fn add_tracked_path<PB>(&self, pb: PB) -> Result<(), ()>
     where
-        PB: Into<PathBuf>
+        PB: Into<PathBuf>,
     {
         // Get PathBuf
         let pb = pb.into();
 
-        let tp = TrackedPathNoId {
-            path: pb.into(),
-        };
+        let tp = TrackedPathNoId { path: pb.into() };
 
         tp.insert_into(tracked_paths::table)
             .execute(&self.db)
@@ -90,11 +79,10 @@ impl Library {
     }
 
     pub fn iter_tracked_paths(&self) -> TrackedPathIter {
-        let tracked_paths: VecDeque<TrackedPath> = tracked_paths::table.load(&self.db).unwrap().into();
+        let tracked_paths: VecDeque<TrackedPath> =
+            tracked_paths::table.load(&self.db).unwrap().into();
 
-        TrackedPathIter {
-            tracked_paths,
-        }
+        TrackedPathIter { tracked_paths }
     }
 }
 
@@ -120,15 +108,14 @@ impl Iterator for TrackedPathIter {
     fn next(&mut self) -> Option<Self::Item> {
         self.tracked_paths.pop_front()
     }
-
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
 
-    use lazy_static::lazy_static;
     use super::super::types::LibraryPath;
+    use lazy_static::lazy_static;
 
     lazy_static! {
         static ref TEST_TRACK_LIST: [TrackNoId; 2] = [
@@ -165,7 +152,11 @@ mod test {
         for track in TEST_TRACK_LIST.iter() {
             lib.add_track(track.clone()).expect("Couldn't add track");
         }
-        assert_eq!(lib.get_track_count(), TEST_TRACK_LIST.len(), "Incorrect library track count");
+        assert_eq!(
+            lib.get_track_count(),
+            TEST_TRACK_LIST.len(),
+            "Incorrect library track count"
+        );
 
         for (track1, track2) in lib.iter_tracks().zip(TEST_TRACK_LIST.iter()) {
             let track1noid: TrackNoId = track1.into();
@@ -176,10 +167,7 @@ mod test {
     #[test]
     fn library_tracked_paths() {
         let lib = Library::new();
-        let tracked_paths: [PathBuf; 2] = [
-            "/tmp/test1".into(),
-            "/tmp/test2".into(),
-        ];
+        let tracked_paths: [PathBuf; 2] = ["/tmp/test1".into(), "/tmp/test2".into()];
 
         for path in tracked_paths.iter() {
             lib.add_tracked_path(path).unwrap();
