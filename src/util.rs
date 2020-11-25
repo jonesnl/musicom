@@ -10,8 +10,8 @@ pub struct Notifier {
     subscribers: Vec<NotifierCb>,
 }
 
-#[allow(dead_code)]
 impl Notifier {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             subscribers: Vec::new(),
