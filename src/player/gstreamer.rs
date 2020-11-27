@@ -151,12 +151,10 @@ impl GstPlayer {
         shared
     }
 
-    // Return an impl trait rather than the lock handle itself to hide implementation details
     pub fn queue(&self) -> RwLockReadGuard<Queue> {
         self.queue.read().unwrap()
     }
 
-    // Return an impl trait rather than the lock handle itself to hide implementation details
     pub fn queue_mut(&self) -> RwLockWriteGuard<Queue> {
         self.queue.write().unwrap()
     }
@@ -198,10 +196,5 @@ impl GstPlayer {
                 log::trace!("Do nothing on toggle on state {:?}", cur_state);
             }
         }
-    }
-
-    pub fn add_song_to_queue<S: Into<PathBuf>>(&self, fname: S) {
-        let fname = fname.into();
-        self.queue_mut().add_song(&fname);
     }
 }
