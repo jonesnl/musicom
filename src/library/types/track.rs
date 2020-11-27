@@ -10,8 +10,10 @@ pub struct Track {
     pub id: i32,
     #[column_name = "path_"]
     pub path: LibraryPath,
-    pub name: String,
+    pub title: Option<String>,
     pub artist: Option<String>,
+    pub album: Option<String>,
+    pub track_num: Option<i32>,
 }
 
 /// TrackNoId is used to insert a track into the database, having it's ID be auto-selected for you.
@@ -20,16 +22,20 @@ pub struct Track {
 pub struct TrackNoId {
     #[column_name = "path_"]
     pub path: LibraryPath,
-    pub name: String,
+    pub title: Option<String>,
     pub artist: Option<String>,
+    pub album: Option<String>,
+    pub track_num: Option<i32>,
 }
 
 impl From<Track> for TrackNoId {
     fn from(t: Track) -> Self {
         TrackNoId {
             path: t.path,
-            name: t.name,
+            title: t.title,
             artist: t.artist,
+            album: t.album,
+            track_num: t.track_num,
         }
     }
 }
@@ -45,8 +51,10 @@ impl TrackNoId {
 
         Some(Self {
             path: path.into(),
-            name: tags.title()?,
+            title: tags.title(),
             artist: tags.artist(),
+            album: tags.album(),
+            track_num: tags.track().map(|val| val as i32),
         })
     }
 }
