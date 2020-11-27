@@ -1,10 +1,17 @@
 use std::path::{Path, PathBuf};
 
 use crate::util::{Notifier, NotifierCb};
+use crate::library::types::Track;
 
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
+pub enum QueueItemContents {
+    Path(PathBuf),
+    Track(Track),
+}
+
+#[derive(Debug, Clone)]
 pub struct QueueItem {
-    pub path: PathBuf,
+    queue_item: QueueItemContents,
 }
 
 #[derive(Default)]
@@ -15,14 +22,26 @@ pub struct Queue {
 }
 
 impl QueueItem {
-    pub fn new(path: &Path) -> Self {
-        QueueItem {
-            path: PathBuf::from(path),
+    pub fn new_from_path<PB>(path: PB) -> Self
+    where
+        PB: Into<PathBuf>
+    {
+        Self {
+            queue_item: QueueItemContents::Path(path.into()),
+        }
+    }
+
+    pub fn new_from_track(track: Track) -> Self {
+        Self {
+            queue_item: QueueItemContents::Track(track),
         }
     }
 
     pub fn get_path(&self) -> &Path {
-        &self.path
+        match self.queue_item {
+            QueueItemContents::Path(ref path) => path,
+            QueueItemContents::Track(ref track) => &track.path,
+        }
     }
 }
 
@@ -57,7 +76,12 @@ impl Queue {
     }
 
     pub fn add_song(&mut self, path: &Path) {
-        self.items.push(QueueItem::new(path));
+        self.items.push(QueueItem::new_from_path(path));
+        self.notifier.notify();
+    }
+
+    pub fn add_track(&mut self, track: &Track) {
+        self.items.push(QueueItem::new_from_track(track.clone()));
         self.notifier.notify();
     }
 

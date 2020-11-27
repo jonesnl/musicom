@@ -164,7 +164,7 @@ impl FileBrowserView {
             let player = PlayerHdl::new();
             match action {
                 Actions::PlayNow => player.play_file(&item_path),
-                Actions::AddToQueue => player.add_song_to_queue(&item_path),
+                Actions::AddToQueue => player.queue_mut().add_song(&item_path),
             }
             s.pop_layer();
         });

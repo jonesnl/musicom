@@ -102,7 +102,8 @@ impl QueueView {
             self.select_view.add_all_str(
                 queue
                     .iter()
-                    .map(|item| item.path.file_name().to_owned().unwrap().to_str().unwrap()),
+                    .filter_map(|item| item.get_path().file_name().to_owned())
+                    .filter_map(|item| item.to_str()),
             );
         }
     }
