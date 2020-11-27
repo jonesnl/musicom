@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::schema::tracks;
 
 use super::LibraryPath;
@@ -29,5 +31,22 @@ impl From<Track> for TrackNoId {
             name: t.name,
             artist: t.artist,
         }
+    }
+}
+
+impl TrackNoId {
+    pub fn new_from_path<PB>(pb: PB) -> Option<Self>
+    where
+        PB: Into<PathBuf>
+    {
+        let path = pb.into();
+        let taglib_file = taglib::File::new(&path).ok()?;
+        let tags = taglib_file.tag().ok()?;
+
+        Some(Self {
+            path: path.into(),
+            name: tags.title()?,
+            artist: tags.artist(),
+        })
     }
 }
