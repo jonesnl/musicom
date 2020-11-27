@@ -9,8 +9,10 @@ table! {
     tracks (id) {
         id -> Integer,
         path_ -> Text,
-        name -> Text,
+        title -> Nullable<Text>,
         artist -> Nullable<Text>,
+        album -> Nullable<Text>,
+        track_num -> Nullable<Integer>,
     }
 }
 

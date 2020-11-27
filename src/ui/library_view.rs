@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use cursive::{Printer, Rect, Vec2};
 use cursive::direction::Direction;
-use cursive::view::{Nameable, Selector, View};
+use cursive::view::{Scrollable, Nameable, Selector, View};
 use cursive::views::{Dialog, Panel, SelectView};
 use cursive::event::{AnyCb, Event, EventResult};
 
@@ -90,7 +90,7 @@ impl LibraryView {
 
         lib_view.set_callbacks();
         lib_view.refresh_view();
-        lib_view.with_name("library_view")
+        lib_view.with_name("library_view").scrollable()
     }
 
     fn set_callbacks(&mut self) {
@@ -107,7 +107,7 @@ impl LibraryView {
         let tracks = self.db.iter_tracks().collect::<Vec<Track>>();
 
         for track in tracks.into_iter() {
-            self.select_view.add_item(track.name.clone(), track);
+            self.select_view.add_item(track.title.clone().unwrap_or("No Title".to_string()), track);
         }
     }
 
