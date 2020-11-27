@@ -10,6 +10,7 @@ use cursive::view::Selector;
 use cursive::views::{Dialog, NamedView, Panel, SelectView};
 use cursive::{Printer, Rect, Vec2};
 
+use crate::library::Library;
 use crate::player::is_audio_file_guess;
 use crate::player::PlayerHdl;
 
@@ -47,11 +48,12 @@ impl View for FileBrowserView {
         match e {
             Event::Char('a') => {
                 let path = self.get_current_selection();
+                let current_dir = self.get_current_directory();
                 EventResult::with_cb(move |siv| {
-                    let action_popup = Self::get_action_view(&path);
+                    let action_popup = Self::get_action_view(&current_dir, &path);
                     siv.add_layer(action_popup);
                 })
-            },
+            }
             Event::Char('?') => EventResult::with_cb(move |siv| {
                 let help_popup = Self::get_help_view();
                 siv.add_layer(help_popup);
@@ -147,24 +149,42 @@ impl FileBrowserView {
         full_path
     }
 
-    fn get_action_view<PB>(item_path: PB) -> impl View
+    fn get_current_directory(&self) -> PathBuf {
+        self.directory.clone()
+    }
+
+    fn get_action_view<PB>(cur_dir: PB, item_path: PB) -> impl View
     where
         PB: Into<PathBuf>,
     {
         let item_path = item_path.into();
+        let cur_dir = cur_dir.into();
         enum Actions {
             PlayNow,
             AddToQueue,
+            AddDirectoryToLibrary,
         };
         let mut action_popup = SelectView::new();
         action_popup.add_item("Add to queue", Actions::AddToQueue);
         action_popup.add_item("Play Now", Actions::PlayNow);
+        action_popup.add_item(
+            "Add current directory to library",
+            Actions::AddDirectoryToLibrary,
+        );
 
         action_popup.set_on_submit(move |s, action| {
             let player = PlayerHdl::new();
+            let library = Library::new();
             match action {
-                Actions::PlayNow => player.play_file(&item_path),
-                Actions::AddToQueue => player.queue_mut().add_song(&item_path),
+                Actions::PlayNow => {
+                    player.play_file(&item_path);
+                }
+                Actions::AddToQueue => {
+                    player.queue_mut().add_song(&item_path);
+                }
+                Actions::AddDirectoryToLibrary => {
+                    library.add_tracked_path(&cur_dir).unwrap();
+                }
             }
             s.pop_layer();
         });

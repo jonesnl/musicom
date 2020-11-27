@@ -59,6 +59,34 @@ impl Library {
         tracks::table.count().first::<i64>(&self.db).unwrap() as usize
     }
 
+    pub fn refresh_library(&self) {
+        let mut tracked_paths: Vec<PathBuf> = self.iter_tracked_paths()
+            .map(|tp| tp.path.to_path_buf()).collect();
+
+        if tracked_paths.is_empty() {
+            return;
+        }
+
+        diesel::delete(tracks::table).execute(&self.db).unwrap();
+
+        loop {
+            let path = match tracked_paths.pop() {
+                Some(path) => path,
+                None => break,
+            };
+
+            if path.is_dir() {
+                for item in path.read_dir().unwrap() {
+                    tracked_paths.push(item.unwrap().path());
+                }
+            } else if crate::player::is_audio_file_guess(&path) {
+                if let Some(track) = TrackNoId::new_from_path(&path) {
+                    self.add_track(track).unwrap();
+                }
+            }
+        }
+    }
+
     pub fn add_tracked_path<PB>(&self, pb: PB) -> Result<(), ()>
     where
         PB: Into<PathBuf>,

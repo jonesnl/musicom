@@ -22,6 +22,11 @@ fn main() {
         std::process::exit(-1)
     };
 
+    {
+        let library = library::Library::new();
+        library.refresh_library();
+    }
+
     let mut ui = ui::UI::new();
 
     ui.run(&std::path::Path::new(&uri)).unwrap();
