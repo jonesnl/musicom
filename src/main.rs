@@ -1,13 +1,9 @@
 extern crate gstreamer as gst;
 
-#[macro_use] extern crate diesel;
-#[macro_use] extern crate diesel_migrations;
-
 mod library;
 mod player;
 mod ui;
 mod util;
-mod schema;
 
 use std::env;
 

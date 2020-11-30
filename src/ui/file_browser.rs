@@ -183,7 +183,7 @@ impl FileBrowserView {
                     player.queue_mut().add_song(&item_path);
                 }
                 Actions::AddDirectoryToLibrary => {
-                    library.add_tracked_path(&cur_dir).unwrap();
+                    library.add_tracked_path(&cur_dir);
                 }
             }
             s.pop_layer();
