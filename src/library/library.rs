@@ -1,16 +1,12 @@
 use std::collections::VecDeque;
 use std::path::PathBuf;
 
-use diesel::prelude::*;
-use diesel::sqlite::SqliteConnection;
+use rusqlite::Connection as SqliteConnection;
+use rusqlite::{named_params, NO_PARAMS};
 
 use crate::util::get_database_path;
 
-use super::types::{Track, TrackNoId, TrackedPath, TrackedPathNoId};
-use crate::schema::{tracked_paths, tracks};
-
-// Embed the migrations defined at the root of the crate here.
-diesel_migrations::embed_migrations!();
+use super::types::{Track, TrackNoId, TrackedPath};
 
 /// Public library methods
 pub struct Library {
@@ -20,24 +16,34 @@ pub struct Library {
 #[allow(dead_code)]
 impl Library {
     pub fn new() -> Self {
-        let path;
+        let db;
         if cfg!(test) {
-            path = ":memory:".to_string();
+            db = SqliteConnection::open_in_memory().unwrap();
         } else {
-            path = get_database_path().to_str().unwrap().to_string();
+            let path = get_database_path().to_str().unwrap().to_string();
+            db = SqliteConnection::open(path).unwrap();
         }
 
-        let db = SqliteConnection::establish(&path).expect("Couldn't open database");
-
-        embedded_migrations::run(&db).expect("Could not ensure database schema is correct");
+        //embedded_migrations::run(&db).expect("Could not ensure database schema is correct");
 
         Self { db }
     }
 
     pub fn add_track(&self, track: TrackNoId) -> Result<(), ()> {
-        diesel::insert_into(tracks::table)
-            .values(track)
-            .execute(&self.db)
+        let sql = "\
+            INSERT INTO tracks (path_, title, artist, album, track_num)
+                VALUES (:path, :title, :artist, :album, :track_num)";
+        self.db
+            .execute_named(
+                sql,
+                named_params! {
+                    ":path": track.path.to_str().unwrap(),
+                    ":title": track.title,
+                    ":artist": track.artist,
+                    ":album": track.album,
+                    ":track_num": track.track_num,
+                },
+            )
             .unwrap_or_else(|e| {
                 log::warn!("Could not add track to database: {}", e);
                 0
@@ -46,28 +52,54 @@ impl Library {
     }
 
     pub fn iter_tracks(&self) -> TrackIter {
-        let tracks: VecDeque<Track> = tracks::table.load(&self.db).unwrap().into();
+        let mut statement = self.db.prepare("SELECT * FROM tracks").unwrap();
 
-        TrackIter { tracks }
+        let tracks: Result<VecDeque<Track>, _> = statement
+            .query_map(NO_PARAMS, |row| Track::from_db_row(&row))
+            .unwrap()
+            .collect();
+
+        TrackIter {
+            tracks: tracks.unwrap(),
+        }
     }
 
     pub fn get_track(&self, id: i32) -> Option<Track> {
-        tracks::table.find(id).first(&self.db).ok()
+        // Given that we're exposing the database columns here, should all this be moved into the
+        // tracks.rs file?
+        let mut statement = self
+            .db
+            .prepare(
+                "SELECT * FROM tracks
+                    WHERE id = :id
+                    LIMIT 1",
+            )
+            .unwrap();
+
+        statement
+            .query_row_named(named_params! {":id": id}, |row| Track::from_db_row(&row))
+            .ok()
     }
 
     pub fn get_track_count(&self) -> usize {
-        tracks::table.count().first::<i64>(&self.db).unwrap() as usize
+        let mut statement = self.db.prepare("SELECT COUNT(*) FROM tracks").unwrap();
+
+        statement
+            .query_row(NO_PARAMS, |row| row.get::<_, u32>(0))
+            .unwrap() as usize
     }
 
     pub fn refresh_library(&self) {
-        let mut tracked_paths: Vec<PathBuf> = self.iter_tracked_paths()
-            .map(|tp| tp.path.to_path_buf()).collect();
+        let mut tracked_paths: Vec<PathBuf> = self
+            .iter_tracked_paths()
+            .map(|tp| tp.path.to_path_buf())
+            .collect();
 
         if tracked_paths.is_empty() {
             return;
         }
 
-        diesel::delete(tracks::table).execute(&self.db).unwrap();
+        self.db.execute("DELETE FROM tracks", NO_PARAMS).unwrap();
 
         loop {
             let path = match tracked_paths.pop() {
@@ -87,30 +119,33 @@ impl Library {
         }
     }
 
-    pub fn add_tracked_path<PB>(&self, pb: PB) -> Result<(), ()>
+    pub fn add_tracked_path<PB>(&self, pb: PB)
     where
         PB: Into<PathBuf>,
     {
         // Get PathBuf
         let pb = pb.into();
 
-        let tp = TrackedPathNoId { path: pb.into() };
-
-        tp.insert_into(tracked_paths::table)
-            .execute(&self.db)
-            .unwrap_or_else(|e| {
-                log::warn!("Could not track directory: {}", e);
-                0
-            });
-
-        Ok(())
+        self.db
+            .execute_named(
+                "INSERT INTO tracked_paths (path_)
+                VALUES (:path)",
+                named_params! {":path": pb.to_str()},
+            )
+            .unwrap();
     }
 
     pub fn iter_tracked_paths(&self) -> TrackedPathIter {
-        let tracked_paths: VecDeque<TrackedPath> =
-            tracked_paths::table.load(&self.db).unwrap().into();
+        let mut statement = self.db.prepare("SELECT * FROM tracked_paths").unwrap();
 
-        TrackedPathIter { tracked_paths }
+        let tracked_paths: Result<VecDeque<TrackedPath>, _> = statement
+            .query_map(NO_PARAMS, |row| TrackedPath::from_db_row(row))
+            .unwrap()
+            .collect();
+
+        TrackedPathIter {
+            tracked_paths: tracked_paths.unwrap(),
+        }
     }
 }
 
@@ -142,36 +177,25 @@ impl Iterator for TrackedPathIter {
 mod test {
     use super::*;
 
-    use super::super::types::LibraryPath;
     use lazy_static::lazy_static;
 
     lazy_static! {
         static ref TEST_TRACK_LIST: [TrackNoId; 2] = [
             TrackNoId {
-                path: LibraryPath::from("/tmp/test1.mp3"),
-                name: "Test 1: The Intro".to_string(),
+                path: PathBuf::from("/tmp/test1.mp3"),
+                title: Some("Test 1: The Intro".to_string()),
                 artist: Some("George".to_string()),
+                album: None,
+                track_num: None,
             },
             TrackNoId {
-                path: LibraryPath::from("/tmp/test1.mp3"),
-                name: "Test 1: The Intro".to_string(),
+                path: PathBuf::from("/tmp/test1.mp3"),
+                title: Some("Test 1: The Intro".to_string()),
                 artist: Some("George".to_string()),
+                album: None,
+                track_num: None,
             },
         ];
-    }
-
-    #[test]
-    fn basic_track_library_test() {
-        let lib = Library::new();
-        let before_cnt = lib.get_track_count();
-        let track = TrackNoId {
-            path: LibraryPath(PathBuf::from("/tmp/test.mp3")),
-            name: "Hi".to_string(),
-            artist: None,
-        };
-        lib.add_track(track).unwrap();
-
-        assert_eq!(before_cnt + 1, lib.get_track_count(), "Track not added");
     }
 
     #[test]
@@ -198,11 +222,11 @@ mod test {
         let tracked_paths: [PathBuf; 2] = ["/tmp/test1".into(), "/tmp/test2".into()];
 
         for path in tracked_paths.iter() {
-            lib.add_tracked_path(path).unwrap();
+            lib.add_tracked_path(path);
         }
 
         for (tracked_path, path) in lib.iter_tracked_paths().zip(tracked_paths.iter()) {
-            assert_eq!(tracked_path.path, path.into(), "Paths not in database");
+            assert_eq!(&tracked_path.path, path, "Paths not in database");
         }
     }
 }

@@ -1,19 +1,16 @@
-use crate::schema::tracked_paths;
+use std::path::PathBuf;
 
-use super::LibraryPath;
+use rusqlite::Row;
 
-#[derive(Queryable, Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct TrackedPath {
     pub id: i32,
-    #[column_name = "path_"]
-    pub path: LibraryPath,
+    pub path: PathBuf,
 }
 
-#[derive(Insertable, Clone, PartialEq, Debug)]
-#[table_name="tracked_paths"]
+#[derive(Clone, PartialEq, Debug)]
 pub struct TrackedPathNoId {
-    #[column_name = "path_"]
-    pub path: LibraryPath,
+    pub path: PathBuf,
 }
 
 impl From<TrackedPath> for TrackedPathNoId {
@@ -21,5 +18,19 @@ impl From<TrackedPath> for TrackedPathNoId {
         TrackedPathNoId {
             path: t.path,
         }
+    }
+}
+
+impl TrackedPath {
+    pub fn from_db_row(row: &Row) -> rusqlite::Result<Self> {
+        let id = row.get_unwrap(row.column_index("id")?);
+        let path = row
+            .get_unwrap::<_, String>(row.column_index("path_")?)
+            .into();
+
+        Ok(TrackedPath {
+            id,
+            path,
+        })
     }
 }
