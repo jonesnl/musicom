@@ -18,3 +18,4 @@ mime_guess = "2.0.3"
 rusqlite = "0.24.1"
 directories = "3.0"
 taglib = "1.0.0"
+refinery = { version = "0.4", features = ["rusqlite"]}

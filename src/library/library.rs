@@ -1,35 +1,42 @@
 use std::collections::VecDeque;
 use std::path::PathBuf;
 
-use rusqlite::Connection as SqliteConnection;
+use rusqlite::Connection;
 use rusqlite::{named_params, NO_PARAMS};
 
 use crate::util::get_database_path;
 
 use super::types::{Track, TrackNoId, TrackedPath};
 
-/// Public library methods
-pub struct Library {
-    db: SqliteConnection,
+mod embedded {
+    use refinery::embed_migrations;
+    embed_migrations!("./migrations");
 }
 
-#[allow(dead_code)]
+/// Public library methods
+pub struct Library {
+    db: Connection,
+}
+
 impl Library {
     pub fn new() -> Self {
-        let db;
+        let mut db;
         if cfg!(test) {
-            db = SqliteConnection::open_in_memory().unwrap();
+            db = Connection::open_in_memory().unwrap();
         } else {
             let path = get_database_path().to_str().unwrap().to_string();
-            db = SqliteConnection::open(path).unwrap();
+            db = Connection::open(path).unwrap();
         }
 
-        //embedded_migrations::run(&db).expect("Could not ensure database schema is correct");
+        self::embedded::migrations::runner().run(&mut db).unwrap();
 
         Self { db }
     }
 
-    pub fn add_track(&self, track: TrackNoId) -> Result<(), ()> {
+    pub fn add_track(
+        &self,
+        track: TrackNoId,
+    ) -> Result<(), ()> {
         let sql = "\
             INSERT INTO tracks (path_, title, artist, album, track_num)
                 VALUES (:path, :title, :artist, :album, :track_num)";
@@ -99,7 +106,7 @@ impl Library {
             return;
         }
 
-        self.db.execute("DELETE FROM tracks", NO_PARAMS).unwrap();
+        self.db.execute("BEGIN TRANSACTION", NO_PARAMS).unwrap();
 
         loop {
             let path = match tracked_paths.pop() {
@@ -117,6 +124,8 @@ impl Library {
                 }
             }
         }
+
+        self.db.execute("COMMIT", NO_PARAMS).unwrap();
     }
 
     pub fn add_tracked_path<PB>(&self, pb: PB)
