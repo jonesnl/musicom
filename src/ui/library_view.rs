@@ -7,7 +7,7 @@ use cursive::views::{Dialog, Panel, SelectView};
 use cursive::event::{AnyCb, Event, EventResult};
 
 use crate::player::PlayerHdl;
-use crate::library::types::Track;
+use crate::library::Track;
 use crate::library::Library;
 
 const HELP_TEXT: &'static str = "\
