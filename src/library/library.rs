@@ -6,7 +6,7 @@ use rusqlite::{named_params, NO_PARAMS};
 
 use crate::util::get_database_path;
 
-use super::types::{Track, TrackNoId, TrackedPath};
+use super::{Track, TrackedPath};
 
 mod embedded {
     use refinery::embed_migrations;
@@ -35,7 +35,7 @@ impl Library {
 
     pub fn add_track(
         &self,
-        track: TrackNoId,
+        track: Track,
     ) -> Result<(), ()> {
         let sql = "\
             INSERT INTO tracks (path_, title, artist, album, track_num)
@@ -119,7 +119,7 @@ impl Library {
                     tracked_paths.push(item.unwrap().path());
                 }
             } else if crate::player::is_audio_file_guess(&path) {
-                if let Some(track) = TrackNoId::new_from_path(&path) {
+                if let Some(track) = Track::new_from_path(&path) {
                     self.add_track(track).unwrap();
                 }
             }
@@ -189,15 +189,17 @@ mod test {
     use lazy_static::lazy_static;
 
     lazy_static! {
-        static ref TEST_TRACK_LIST: [TrackNoId; 2] = [
-            TrackNoId {
+        static ref TEST_TRACK_LIST: [Track; 2] = [
+            Track {
+                id: None,
                 path: PathBuf::from("/tmp/test1.mp3"),
                 title: Some("Test 1: The Intro".to_string()),
                 artist: Some("George".to_string()),
                 album: None,
                 track_num: None,
             },
-            TrackNoId {
+            Track {
+                id: None,
                 path: PathBuf::from("/tmp/test1.mp3"),
                 title: Some("Test 1: The Intro".to_string()),
                 artist: Some("George".to_string()),
@@ -220,7 +222,7 @@ mod test {
         );
 
         for (track1, track2) in lib.iter_tracks().zip(TEST_TRACK_LIST.iter()) {
-            let track1noid: TrackNoId = track1.into();
+            let track1noid: Track = track1.into();
             assert_eq!(track1noid, *track2, "Tracks aren't equal");
         }
     }

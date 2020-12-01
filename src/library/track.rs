@@ -3,9 +3,9 @@ use std::path::PathBuf;
 use rusqlite::{types::FromSql, Row};
 
 /// Track is used as the target data structure for a database query.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug)]
 pub struct Track {
-    pub id: i32,
+    pub id: Option<i32>,
     pub path: PathBuf,
     pub title: Option<String>,
     pub artist: Option<String>,
@@ -13,25 +13,13 @@ pub struct Track {
     pub track_num: Option<i32>,
 }
 
-/// TrackNoId is used to insert a track into the database, having it's ID be auto-selected for you.
-#[derive(Clone, PartialEq, Debug)]
-pub struct TrackNoId {
-    pub path: PathBuf,
-    pub title: Option<String>,
-    pub artist: Option<String>,
-    pub album: Option<String>,
-    pub track_num: Option<i32>,
-}
-
-impl From<Track> for TrackNoId {
-    fn from(t: Track) -> Self {
-        TrackNoId {
-            path: t.path,
-            title: t.title,
-            artist: t.artist,
-            album: t.album,
-            track_num: t.track_num,
-        }
+impl PartialEq<Track> for Track {
+    fn eq(&self, other: &Track) -> bool {
+        self.path == other.path &&
+            self.title == other.title &&
+            self.artist == other.artist &&
+            self.album == other.album &&
+            self.track_num == other.track_num
     }
 }
 
@@ -59,9 +47,7 @@ impl Track {
             track_num,
         })
     }
-}
 
-impl TrackNoId {
     pub fn new_from_path<PB>(pb: PB) -> Option<Self>
     where
         PB: Into<PathBuf>,
@@ -71,6 +57,7 @@ impl TrackNoId {
         let tags = taglib_file.tag().ok()?;
 
         Some(Self {
+            id: None,
             path: path.into(),
             title: tags.title(),
             artist: tags.artist(),

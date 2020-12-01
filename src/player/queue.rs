@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::util::{Notifier, NotifierCb};
-use crate::library::types::Track;
+use crate::library::Track;
 
 #[derive(Debug, Clone)]
 pub enum QueueItemContents {
