@@ -1,14 +1,13 @@
 use std::path::PathBuf;
 
-use cursive::{Printer, Rect, Vec2};
 use cursive::direction::Direction;
-use cursive::view::{Scrollable, Nameable, Selector, View};
-use cursive::views::{Dialog, Panel, SelectView};
 use cursive::event::{AnyCb, Event, EventResult};
+use cursive::view::{Nameable, Scrollable, Selector, View};
+use cursive::views::{Dialog, Panel, SelectView};
+use cursive::{Printer, Rect, Vec2};
 
-use crate::player::PlayerHdl;
 use crate::library::Track;
-use crate::library::Library;
+use crate::player::PlayerHdl;
 
 const HELP_TEXT: &'static str = "\
 Press <Enter> to start playing a track
@@ -18,7 +17,6 @@ Press <?> to open this help menu";
 
 pub struct LibraryView {
     select_view: SelectView<Track>,
-    db: Library,
     player: PlayerHdl,
 }
 
@@ -52,7 +50,7 @@ impl View for LibraryView {
                 } else {
                     EventResult::Consumed(None)
                 }
-            },
+            }
             Event::Char('?') => EventResult::with_cb(move |siv| {
                 let help_popup = Dialog::info(HELP_TEXT);
                 siv.add_layer(help_popup);
@@ -84,7 +82,6 @@ impl LibraryView {
 
         let mut lib_view = Self {
             select_view,
-            db: Library::new(),
             player: PlayerHdl::new(),
         };
 
@@ -99,15 +96,15 @@ impl LibraryView {
                 view.player.play_file(&*track.path);
             });
         });
-
     }
 
     fn refresh_view(&mut self) {
         self.select_view.clear();
-        let tracks = self.db.iter_tracks().collect::<Vec<Track>>();
+        let tracks = Track::iter().collect::<Vec<Track>>();
 
         for track in tracks.into_iter() {
-            self.select_view.add_item(track.title.clone().unwrap_or("No Title".to_string()), track);
+            self.select_view
+                .add_item(track.title.clone().unwrap_or("No Title".to_string()), track);
         }
     }
 

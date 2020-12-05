@@ -10,7 +10,7 @@ use cursive::view::Selector;
 use cursive::views::{Dialog, NamedView, Panel, SelectView};
 use cursive::{Printer, Rect, Vec2};
 
-use crate::library::Library;
+use crate::library::TrackedPath;
 use crate::player::is_audio_file_guess;
 use crate::player::PlayerHdl;
 
@@ -123,7 +123,11 @@ impl FileBrowserView {
             .map(|res| res.map(|e| e.path()))
             .filter(|res| {
                 if let Ok(path) = res {
-                    is_audio_file_guess(path) || path.is_dir()
+                    // XXX At some point we should make showing hidden files configurable
+                    let is_hidden_file =
+                        path.file_name().unwrap().to_string_lossy().starts_with(".");
+                    let is_audio_file = is_audio_file_guess(path);
+                    !is_hidden_file && (is_audio_file || path.is_dir())
                 } else {
                     false
                 }
@@ -174,7 +178,6 @@ impl FileBrowserView {
 
         action_popup.set_on_submit(move |s, action| {
             let player = PlayerHdl::new();
-            let library = Library::new();
             match action {
                 Actions::PlayNow => {
                     player.play_file(&item_path);
@@ -183,7 +186,11 @@ impl FileBrowserView {
                     player.queue_mut().add_song(&item_path);
                 }
                 Actions::AddDirectoryToLibrary => {
-                    library.add_tracked_path(&cur_dir);
+                    let mut tp = TrackedPath {
+                        id: None,
+                        path: cur_dir.clone(),
+                    };
+                    tp.save();
                 }
             }
             s.pop_layer();
