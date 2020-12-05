@@ -121,12 +121,13 @@ impl Track {
             .ok()
     }
 
+    #[allow(dead_code)]
     pub fn save(&mut self) {
         let conn = get_library_db().unwrap();
         self.save_with_conn(&conn)
     }
 
-    fn save_with_conn(&mut self, conn: &Connection) {
+    pub fn save_with_conn(&mut self, conn: &Connection) {
         let sql = "\
             INSERT OR REPLACE INTO tracks (id, path_, title, artist, album, track_num)
                 VALUES (:id, :path, :title, :artist, :album, :track_num)";
