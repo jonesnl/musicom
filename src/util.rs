@@ -1,6 +1,3 @@
-use std::path::PathBuf;
-use std::fs;
-
 use directories::ProjectDirs;
 
 pub type NotifierCb = Box<dyn Fn() + Send + Sync + 'static>;
@@ -27,16 +24,6 @@ impl Notifier {
     }
 }
 
-fn get_project_dirs() -> ProjectDirs {
+pub fn get_project_dirs() -> ProjectDirs {
     ProjectDirs::from("com.jonesnl", "Nate Jones", "Musicom").unwrap()
-}
-
-pub fn get_database_path() -> PathBuf {
-    let dirs = get_project_dirs();
-
-    let config_dir = dirs.config_dir();
-
-    fs::create_dir_all(config_dir).unwrap();
-
-    config_dir.join("database.sqlite")
 }
