@@ -2,9 +2,11 @@ use std::path::PathBuf;
 
 use cursive::direction::Direction;
 use cursive::event::{AnyCb, Event, EventResult};
-use cursive::view::{Nameable, Scrollable, Selector, View};
+use cursive::view::{Nameable, Selector, View};
 use cursive::views::{Dialog, Panel, SelectView};
 use cursive::{Printer, Rect, Vec2};
+
+use unicode_segmentation::UnicodeSegmentation;
 
 use crate::library::Track;
 use crate::player::PlayerHdl;
@@ -87,7 +89,7 @@ impl LibraryView {
 
         lib_view.set_callbacks();
         lib_view.refresh_view();
-        lib_view.with_name("library_view").scrollable()
+        lib_view.with_name("library_view")
     }
 
     fn set_callbacks(&mut self) {
@@ -103,8 +105,11 @@ impl LibraryView {
         let tracks = Track::iter().collect::<Vec<Track>>();
 
         for track in tracks.into_iter() {
+            let track_name = track.title.clone().unwrap_or("No Title".to_string());
+            
+            let short_track_name = track_name.graphemes(true).take(50).collect::<String>();
             self.select_view
-                .add_item(track.title.clone().unwrap_or("No Title".to_string()), track);
+                .add_item(short_track_name, track);
         }
     }
 

@@ -7,7 +7,7 @@ use cursive::direction::Direction;
 use cursive::event::{AnyCb, Event, EventResult};
 use cursive::traits::*;
 use cursive::view::Selector;
-use cursive::views::{Dialog, NamedView, Panel, SelectView};
+use cursive::views::{Dialog, Panel, SelectView};
 use cursive::{Printer, Rect, Vec2};
 
 use crate::library::TrackedPath;
@@ -80,7 +80,7 @@ impl View for FileBrowserView {
 }
 
 impl FileBrowserView {
-    pub fn new<PB>(starting_path: PB) -> NamedView<Self>
+    pub fn new<PB>(starting_path: PB) -> impl View
     where
         PB: Into<PathBuf>,
     {

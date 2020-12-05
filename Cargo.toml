@@ -19,3 +19,4 @@ rusqlite = "0.24.1"
 directories = "3.0"
 taglib = "1.0.0"
 refinery = { version = "0.4", features = ["rusqlite"]}
+unicode-segmentation = "1.7.1"
