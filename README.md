@@ -14,6 +14,3 @@ musicom depends on:
 * `ncurses` to draw to the terminal
 * `sqlite` to store the library
 * `taglib` to parse tags for the library
-
-# Developing
-`dev_env.bash` can be sourced to point `diesel_cli` at the musicom database without having to specify it manually.
