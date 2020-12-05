@@ -39,7 +39,7 @@ pub fn fast_refresh_library() {
                 // If the track already exists in the database, it will already hae an ID
                 // associated with it. Only save the track if it isn't in the database yet.
                 if track.id.is_none() {
-                    track.save();
+                    track.save_with_conn(&transaction);
                 }
             }
         }
