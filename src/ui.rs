@@ -43,12 +43,12 @@ impl UI {
         let file_browser_view = self::file_browser::FileBrowserView::new(dir);
         let library_view = self::library_view::LibraryView::new();
         let mut stack_view = StackView::new();
-        stack_view.add_fullscreen_layer(library_view.full_screen());
-        stack_view.add_fullscreen_layer(file_browser_view.full_screen());
+        stack_view.add_fullscreen_layer(library_view.full_screen().scrollable());
+        stack_view.add_fullscreen_layer(file_browser_view.full_screen().scrollable());
         let queue_view = self::queue_view::QueueView::new(siv);
 
         let browser_layout = LinearLayout::horizontal()
-            .child(stack_view.with_name("stack_view").full_screen())
+            .child(stack_view.with_name("stack_view"))
             .child(
                 Panel::new(queue_view)
                     .title("Queue")
@@ -59,7 +59,7 @@ impl UI {
 
         let player_bar = player_view::PlayerView::new(siv);
         let top_level_layout = LinearLayout::vertical()
-            .child(browser_layout.scrollable().full_height())
+            .child(browser_layout.full_height())
             .child(player_bar.fixed_height(1).full_width());
         top_level_layout
     }
