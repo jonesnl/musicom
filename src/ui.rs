@@ -1,5 +1,5 @@
 mod file_browser;
-mod library_view;
+mod library;
 mod player_view;
 mod queue_view;
 
@@ -41,7 +41,7 @@ impl UI {
 
     fn build_views(&self, siv: &mut Cursive, dir: &Path) -> LinearLayout {
         let file_browser_view = self::file_browser::FileBrowserView::new(dir);
-        let library_view = self::library_view::LibraryView::new();
+        let library_view = self::library::LibraryView::new();
         let mut stack_view = StackView::new();
         stack_view.add_fullscreen_layer(library_view.full_screen().scrollable());
         stack_view.add_fullscreen_layer(file_browser_view.full_screen().scrollable());

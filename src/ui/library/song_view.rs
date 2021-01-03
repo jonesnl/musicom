@@ -1,15 +1,14 @@
 use std::path::PathBuf;
 
-use cursive::direction::Direction;
-use cursive::event::{AnyCb, Event, EventResult};
-use cursive::view::{Nameable, Selector, View};
+use cursive::event::{Event, EventResult};
+use cursive::view::{Nameable, View, ViewWrapper};
 use cursive::views::{Dialog, Panel, SelectView};
-use cursive::{Printer, Rect, Vec2};
 
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::library::Track;
 use crate::player::PlayerHdl;
+use super::library_view;
 
 const HELP_TEXT: &'static str = "\
 Press <Enter> to start playing a track
@@ -17,30 +16,15 @@ Press <a> to open the action menu for a track
 Press <p> to pause/play the current song
 Press <?> to open this help menu";
 
-pub struct LibraryView {
+pub struct LibrarySongView {
     select_view: SelectView<Track>,
     player: PlayerHdl,
 }
 
-// Implement the View wrapper by hand so we can intercept on_event calls
-impl View for LibraryView {
-    fn draw(&self, printer: &Printer) {
-        self.select_view.draw(printer);
-    }
+impl ViewWrapper for LibrarySongView {
+    cursive::wrap_impl!(self.select_view: SelectView<Track>);
 
-    fn layout(&mut self, xy: Vec2) {
-        self.select_view.layout(xy);
-    }
-
-    fn needs_relayout(&self) -> bool {
-        self.select_view.needs_relayout()
-    }
-
-    fn required_size(&mut self, constraint: Vec2) -> Vec2 {
-        self.select_view.required_size(constraint)
-    }
-
-    fn on_event(&mut self, e: Event) -> EventResult {
+    fn wrap_on_event(&mut self, e: Event) -> EventResult {
         match e {
             Event::Char('a') => {
                 let track = self.select_view.selection();
@@ -60,25 +44,9 @@ impl View for LibraryView {
             _ => self.select_view.on_event(e),
         }
     }
-
-    fn call_on_any<'a>(&mut self, s: &Selector<'_>, cb: AnyCb<'a>) {
-        self.select_view.call_on_any(s, cb);
-    }
-
-    fn focus_view(&mut self, s: &Selector<'_>) -> Result<(), ()> {
-        self.select_view.focus_view(s)
-    }
-
-    fn take_focus(&mut self, source: Direction) -> bool {
-        self.select_view.take_focus(source)
-    }
-
-    fn important_area(&self, view_size: Vec2) -> Rect {
-        self.select_view.important_area(view_size)
-    }
 }
 
-impl LibraryView {
+impl LibrarySongView {
     pub fn new() -> impl View {
         let select_view = SelectView::new().h_align(cursive::align::HAlign::Center);
 
@@ -87,29 +55,36 @@ impl LibraryView {
             player: PlayerHdl::new(),
         };
 
-        lib_view.set_callbacks();
-        lib_view.refresh_view();
-        lib_view.with_name("library_view")
+        lib_view.set_select_callbacks();
+        lib_view.show_full_list_of_songs();
+        lib_view.with_name("library_song_view")
     }
 
-    fn set_callbacks(&mut self) {
+    fn set_select_callbacks(&mut self) {
         self.select_view.set_on_submit(move |siv, track| {
-            siv.call_on_name("library_view", |view: &mut Self| {
+            siv.call_on_name("library_song_view", |view: &mut Self| {
                 view.player.play_file(&*track.path);
             });
         });
     }
 
-    fn refresh_view(&mut self) {
-        self.select_view.clear();
+    fn show_full_list_of_songs(&mut self) {
         let tracks = Track::iter().collect::<Vec<Track>>();
 
+        self.show_songs_from_iter(&tracks);
+    }
+
+    pub fn show_songs_from_iter<'a, I>(&mut self, tracks: I)
+    where
+        I: IntoIterator<Item = &'a Track>
+    {
+        self.select_view.clear();
         for track in tracks.into_iter() {
             let track_name = track.title.clone().unwrap_or("No Title".to_string());
             
             let short_track_name = track_name.graphemes(true).take(50).collect::<String>();
             self.select_view
-                .add_item(short_track_name, track);
+                .add_item(short_track_name, track.clone());
         }
     }
 
@@ -117,10 +92,12 @@ impl LibraryView {
         let track = track.clone();
         enum Actions {
             PlayNow,
+            GoToAlbum,
             AddToQueue,
         };
         let mut action_popup = SelectView::new();
         action_popup.add_item("Add to queue", Actions::AddToQueue);
+        action_popup.add_item("Go to Album", Actions::GoToAlbum);
         action_popup.add_item("Play Now", Actions::PlayNow);
 
         action_popup.set_on_submit(move |s, action| {
@@ -128,6 +105,11 @@ impl LibraryView {
             let player = PlayerHdl::new();
             match action {
                 Actions::PlayNow => player.play_file(path_buf),
+                Actions::GoToAlbum => {
+                    if let Some(album_str) = track.album.as_ref() {
+                        library_view::show_tracks_from_album(s, album_str)
+                    }
+                },
                 Actions::AddToQueue => player.queue_mut().add_track(&track),
             }
             s.pop_layer();

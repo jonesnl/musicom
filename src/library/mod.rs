@@ -1,9 +1,11 @@
 pub mod db;
+mod album;
 mod track;
 mod tracked_path;
 
 use std::path::PathBuf;
 
+pub use album::Album;
 pub use track::Track;
 pub use tracked_path::TrackedPath;
 
