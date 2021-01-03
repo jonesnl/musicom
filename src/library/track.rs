@@ -168,12 +168,12 @@ impl Track {
             .unwrap() as usize
     }
 
-    pub fn iter() -> TrackIter {
+    pub fn iter() -> impl Iterator<Item = Track> {
         let conn = get_library_db().unwrap();
         Self::iter_with_conn(&conn)
     }
 
-    pub fn iter_with_conn(conn: &Connection) -> TrackIter {
+    pub fn iter_with_conn(conn: &Connection) -> impl Iterator<Item = Track> {
         let mut statement = conn.prepare("SELECT * FROM tracks").unwrap();
 
         let tracks: Result<VecDeque<Track>, _> = statement
@@ -181,21 +181,7 @@ impl Track {
             .unwrap()
             .collect();
 
-        TrackIter {
-            tracks: tracks.unwrap(),
-        }
-    }
-}
-
-pub struct TrackIter {
-    tracks: VecDeque<Track>,
-}
-
-impl Iterator for TrackIter {
-    type Item = Track;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.tracks.pop_front()
+        tracks.unwrap_or_default().into_iter()
     }
 }
 
