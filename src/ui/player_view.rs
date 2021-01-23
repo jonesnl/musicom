@@ -1,13 +1,12 @@
 use chrono::Duration;
 
 use cursive::align::HAlign;
-use cursive::direction::Direction;
-use cursive::event::{AnyCb, Event, EventResult};
+use cursive::event::{Event, EventResult};
 use cursive::traits::*;
-use cursive::view::Selector;
+use cursive::view::ViewWrapper;
 use cursive::views::{DummyView, LinearLayout, TextContent, TextView};
 use cursive::Cursive;
-use cursive::{Printer, Rect, Vec2};
+use cursive::wrap_impl;
 
 use crate::player::PlayerHdl;
 
@@ -25,43 +24,13 @@ fn format_time(time: Duration) -> String {
 }
 
 // Implement the View wrapper by hand so we can intercept on_event calls
-impl View for PlayerView {
-    fn draw(&self, printer: &Printer) {
-        self.linear_layout.draw(printer);
-    }
+impl ViewWrapper for PlayerView {
+    wrap_impl!(self.linear_layout: LinearLayout);
 
-    fn layout(&mut self, xy: Vec2) {
-        self.linear_layout.layout(xy);
-    }
-
-    fn needs_relayout(&self) -> bool {
-        self.linear_layout.needs_relayout()
-    }
-
-    fn required_size(&mut self, constraint: Vec2) -> Vec2 {
-        self.linear_layout.required_size(constraint)
-    }
-
-    fn on_event(&mut self, e: Event) -> EventResult {
+    fn wrap_on_event(&mut self, e: Event) -> EventResult {
         match e {
             _ => self.linear_layout.on_event(e),
         }
-    }
-
-    fn call_on_any<'a>(&mut self, s: &Selector<'_>, cb: AnyCb<'a>) {
-        self.linear_layout.call_on_any(s, cb);
-    }
-
-    fn focus_view(&mut self, s: &Selector<'_>) -> Result<(), ()> {
-        self.linear_layout.focus_view(s)
-    }
-
-    fn take_focus(&mut self, source: Direction) -> bool {
-        self.linear_layout.take_focus(source)
-    }
-
-    fn important_area(&self, view_size: Vec2) -> Rect {
-        self.linear_layout.important_area(view_size)
     }
 }
 
