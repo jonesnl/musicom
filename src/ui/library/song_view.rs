@@ -1,12 +1,13 @@
 use std::path::PathBuf;
 
 use cursive::event::{Event, EventResult};
+use cursive::traits::Finder;
 use cursive::view::{Nameable, View, ViewWrapper};
 use cursive::views::{Dialog, Panel, SelectView};
 
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::library::Track;
+use crate::library::{Album, Track};
 use crate::player::PlayerHdl;
 use super::library_view;
 
@@ -107,7 +108,14 @@ impl LibrarySongView {
                 Actions::PlayNow => player.play_file(path_buf),
                 Actions::GoToAlbum => {
                     if let Some(album_str) = track.album.as_ref() {
-                        library_view::show_tracks_from_album(s, album_str)
+                        let album = Album::get_album(album_str);
+                        let mut song_view = LibrarySongView::new();
+
+                        song_view.call_on_name("library_song_view", |v: &mut LibrarySongView| {
+                            v.show_songs_from_iter(album.iter_tracks());
+                        });
+
+                        library_view::replace_view(s, song_view);
                     }
                 },
                 Actions::AddToQueue => player.queue_mut().add_track(&track),
