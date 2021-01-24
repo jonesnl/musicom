@@ -1,16 +1,17 @@
 mod file_browser;
 mod library;
+mod main_view;
 mod player_view;
 mod queue_view;
 
 use std::io;
-use std::path::Path;
 
-use cursive::view::{Nameable, Resizable, Scrollable};
-use cursive::views::{LinearLayout, Panel, StackView};
+use cursive::view::Resizable;
+use cursive::views::{LinearLayout, Panel};
 use cursive::Cursive;
 
 use crate::player::PlayerHdl;
+use main_view::MainView;
 
 pub struct UI {
     player: PlayerHdl,
@@ -23,10 +24,10 @@ impl UI {
         }
     }
 
-    pub fn run(&mut self, dir: &Path) -> io::Result<()> {
+    pub fn run(&mut self) -> io::Result<()> {
         let mut siv = cursive::default();
 
-        let linear_layout = self.build_views(&mut siv, dir);
+        let linear_layout = self.build_views(&mut siv);
         siv.add_fullscreen_layer(linear_layout);
         self.build_menus(&mut siv);
 
@@ -39,16 +40,12 @@ impl UI {
         Ok(())
     }
 
-    fn build_views(&self, siv: &mut Cursive, dir: &Path) -> LinearLayout {
-        let file_browser_view = self::file_browser::FileBrowserView::new(dir);
-        let library_view = self::library::LibraryView::new();
-        let mut stack_view = StackView::new();
-        stack_view.add_fullscreen_layer(library_view.full_screen().scrollable());
-        stack_view.add_fullscreen_layer(file_browser_view.full_screen().scrollable());
+    fn build_views(&self, siv: &mut Cursive) -> LinearLayout {
+        let main_view = MainView::new();
         let queue_view = self::queue_view::QueueView::new(siv);
 
         let browser_layout = LinearLayout::horizontal()
-            .child(stack_view.with_name("stack_view"))
+            .child(main_view)
             .child(
                 Panel::new(queue_view)
                     .title("Queue")
@@ -65,22 +62,8 @@ impl UI {
     }
 
     fn build_menus(&self, siv: &mut Cursive) {
-        siv.set_autohide_menu(false);
-        siv.menubar()
-            .add_leaf("Library", |s| {
-                s.call_on_name("stack_view", |view: &mut StackView| {
-                    let library_view_loc = view.find_layer_from_name("library_view").unwrap();
-                    view.move_to_front(library_view_loc);
-                })
-                .unwrap()
-            })
-            .add_leaf("File Browser", |s| {
-                s.call_on_name("stack_view", |view: &mut StackView| {
-                    let fb_view_loc = view.find_layer_from_name("file_browser_view").unwrap();
-                    view.move_to_front(fb_view_loc);
-                })
-                .unwrap()
-            });
-        siv.add_global_callback(cursive::event::Key::Esc, |s| s.select_menubar());
+        siv.add_global_callback('v', |siv| {
+            main_view::select_new_view_from_user(siv);
+        });
     }
 }

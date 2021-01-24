@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 use rusqlite::{named_params, Connection, NO_PARAMS};
 
 use crate::library::db::get_library_db;

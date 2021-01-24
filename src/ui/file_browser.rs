@@ -6,7 +6,7 @@ use cursive::align::HAlign;
 use cursive::direction::Direction;
 use cursive::event::{AnyCb, Event, EventResult};
 use cursive::traits::*;
-use cursive::view::Selector;
+use cursive::view::{Resizable, Scrollable, Selector};
 use cursive::views::{Dialog, Panel, SelectView};
 use cursive::{Printer, Rect, Vec2};
 
@@ -80,21 +80,21 @@ impl View for FileBrowserView {
 }
 
 impl FileBrowserView {
-    pub fn new<PB>(starting_path: PB) -> impl View
-    where
-        PB: Into<PathBuf>,
-    {
+    pub fn new() -> impl View {
+        let user_dirs = directories::UserDirs::new().unwrap();
+        let home = user_dirs.home_dir().to_str().unwrap();
+
         let select_view = SelectView::new().h_align(HAlign::Center);
 
         let mut fbv = FileBrowserView {
             select_view,
-            directory: starting_path.into(),
+            directory: home.into(),
             player: PlayerHdl::new(),
         };
 
         fbv.set_callbacks();
         fbv.refresh_view();
-        fbv.with_name("file_browser_view")
+        fbv.with_name("file_browser_view").full_screen().scrollable()
     }
 
     fn set_callbacks(&mut self) {

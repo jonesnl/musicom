@@ -1,5 +1,5 @@
 use cursive::event::{Event, EventResult};
-use cursive::view::{Nameable, View, ViewWrapper};
+use cursive::view::{Nameable, Resizable, Scrollable, View, ViewWrapper};
 use cursive::views::SelectView;
 
 use crate::library::Album;
@@ -7,7 +7,7 @@ use crate::player::PlayerHdl;
 
 pub struct LibraryAlbumView {
     select_view: SelectView<String>,
-    player: PlayerHdl,
+    _player: PlayerHdl,
 }
 
 impl ViewWrapper for LibraryAlbumView {
@@ -24,11 +24,11 @@ impl LibraryAlbumView {
 
         let mut album_list_view = Self {
             select_view,
-            player: PlayerHdl::new(),
+            _player: PlayerHdl::new(),
         };
 
         album_list_view.show_all_album();
-        album_list_view.with_name("library_album_view")
+        album_list_view.with_name("library_album_view").full_screen().scrollable()
     }
 
     fn show_all_album(&mut self) {

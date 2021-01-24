@@ -2,14 +2,14 @@ use std::path::PathBuf;
 
 use cursive::event::{Event, EventResult};
 use cursive::traits::Finder;
-use cursive::view::{Nameable, View, ViewWrapper};
+use cursive::view::{Nameable, Resizable, Scrollable, View, ViewWrapper};
 use cursive::views::{Dialog, Panel, SelectView};
 
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::library::{Album, Track};
 use crate::player::PlayerHdl;
-use super::library_view;
+use crate::ui::main_view;
 
 const HELP_TEXT: &'static str = "\
 Press <Enter> to start playing a track
@@ -58,7 +58,7 @@ impl LibrarySongView {
 
         lib_view.set_select_callbacks();
         lib_view.show_full_list_of_songs();
-        lib_view.with_name("library_song_view")
+        lib_view.with_name("library_song_view").full_screen().scrollable()
     }
 
     fn set_select_callbacks(&mut self) {
@@ -115,7 +115,7 @@ impl LibrarySongView {
                             v.show_songs_from_iter(album.iter_tracks());
                         });
 
-                        library_view::replace_view(s, song_view);
+                        main_view::replace_view(s, song_view);
                     }
                 },
                 Actions::AddToQueue => player.queue_mut().add_track(&track),
