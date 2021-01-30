@@ -1,9 +1,12 @@
 use cursive::event::{Event, EventResult};
+use cursive::traits::Finder;
 use cursive::view::{Nameable, Resizable, Scrollable, View, ViewWrapper};
 use cursive::views::SelectView;
 
 use crate::library::Album;
 use crate::player::PlayerHdl;
+use crate::ui::main_view;
+use crate::ui::library::LibrarySongView;
 
 pub struct LibraryAlbumView {
     select_view: SelectView<String>,
@@ -20,7 +23,16 @@ impl ViewWrapper for LibraryAlbumView {
 
 impl LibraryAlbumView {
     pub fn new() -> impl View {
-        let select_view = SelectView::new().h_align(cursive::align::HAlign::Center);
+        let mut select_view = SelectView::new().h_align(cursive::align::HAlign::Center);
+
+        select_view.set_on_submit(|siv, album_title: &String| {
+            let album = Album::get_album(album_title);
+            let mut song_view = LibrarySongView::new();
+            song_view.call_on_name("library_song_view", |v: &mut LibrarySongView| {
+                v.show_songs_from_iter(album.iter_tracks());
+            });
+            main_view::replace_view(siv, song_view);
+        });
 
         let mut album_list_view = Self {
             select_view,

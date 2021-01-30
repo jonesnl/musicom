@@ -46,7 +46,9 @@ impl Album {
             .prepare(
                 "SELECT DISTINCT t.album
                     FROM tracks t
-                    WHERE t.album NOT NULL",
+                    WHERE t.album NOT NULL
+                    ORDER BY
+                        t.album COLLATE NOCASE ASC",
             )
             .unwrap();
 

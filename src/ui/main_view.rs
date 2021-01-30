@@ -51,7 +51,7 @@ pub fn select_new_view_from_user(siv: &mut Cursive) {
 
 impl MainView {
     pub fn new() -> impl View {
-        let boxed_view = BoxedView::boxed(LibrarySongView::new());
+        let boxed_view = BoxedView::boxed(LibraryAlbumView::new());
 
         let mut ret = Self {
             boxed_view,
