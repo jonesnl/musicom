@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
-use cursive::event::{Event, EventResult};
+use cursive::event::{Event, EventResult, Key};
 use cursive::traits::Finder;
 use cursive::view::{Nameable, Resizable, Scrollable, View, ViewWrapper};
-use cursive::views::{Dialog, Panel, SelectView};
+use cursive::views::{Dialog, OnEventView, Panel, SelectView};
 
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -123,6 +123,11 @@ impl LibrarySongView {
             s.pop_layer();
         });
 
-        Panel::new(action_popup)
+        let wrapped_event = OnEventView::new(action_popup)
+            .on_pre_event(Key::Esc, |siv| {
+                siv.pop_layer();
+            });
+
+        Panel::new(wrapped_event)
     }
 }
