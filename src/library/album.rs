@@ -19,7 +19,9 @@ impl Album {
         let mut statement = conn
             .prepare(
                 "SELECT * FROM tracks
-                    WHERE album = :album"
+                    WHERE album = :album
+                    ORDER BY
+                        track_num"
             )
             .unwrap();
 
