@@ -1,4 +1,3 @@
-use cursive::event::{Event, EventResult};
 use cursive::traits::Finder;
 use cursive::view::{Nameable, Resizable, Scrollable, View, ViewWrapper};
 use cursive::views::SelectView;
@@ -15,10 +14,6 @@ pub struct LibraryAlbumView {
 
 impl ViewWrapper for LibraryAlbumView {
     cursive::wrap_impl!(self.select_view: SelectView<String>);
-
-    fn wrap_on_event(&mut self, e: Event) -> EventResult {
-        self.select_view.on_event(e)
-    }
 }
 
 impl LibraryAlbumView {
