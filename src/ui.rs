@@ -7,11 +7,18 @@ mod queue_view;
 use std::io;
 
 use cursive::view::{Nameable, Resizable, View};
-use cursive::views::{LinearLayout, Panel};
+use cursive::views::{BoxedView, HideableView, LinearLayout, NamedView, Panel};
 use cursive::Cursive;
 
 use crate::player::PlayerHdl;
 use main_view::MainView;
+
+// QueueHiderView uses a BoxedView to hide the implementation of the QueueView
+// in the UI, specifically so we don't have to track the full set of type
+// parameters used by the UI to create the QueueView UI. It would be just a
+// huge stack of NamedView<ResizedView<ResizedView<...>>> that we really don't
+// care about at this level.
+type QueueHiderView = HideableView<BoxedView>;
 
 pub struct UI {
     player: PlayerHdl,
@@ -40,12 +47,13 @@ impl UI {
         Ok(())
     }
 
-    fn get_queue_sidebar_view(siv: &mut Cursive) -> impl View {
+    fn get_queue_sidebar_view(siv: &mut Cursive) -> NamedView<QueueHiderView> {
         let queue_view = self::queue_view::QueueView::new(siv);
-        Panel::new(queue_view)
+        let panel = Panel::new(queue_view)
             .title("Queue")
             .min_width(50)
-            .full_height()
+            .full_height();
+        HideableView::new(BoxedView::boxed(panel)).with_name("queue_hider_view")
     }
 
     fn build_views(&self, siv: &mut Cursive) -> impl View {
@@ -64,26 +72,10 @@ impl UI {
     }
 
     pub fn toggle_queue_sidebar(siv: &mut Cursive) {
-        let add_queue_fn = |s: &mut Cursive| {
-            let queue_view = Self::get_queue_sidebar_view(s);
-            s.call_on_name("browser_layout", |browser_layout: &mut LinearLayout| {
-                browser_layout.add_child(queue_view);
-            });
-        };
-
-        let cb_sink = siv.cb_sink().clone();
-        let toggle_queue_fn = |browser_layout: &mut LinearLayout| {
-            if let Some(idx) = browser_layout.find_child_from_name("queue_view") {
-                browser_layout.remove_child(idx);
-            } else {
-                // Need to use the cb_sink here because we can't pass the &mut Cursive
-                // from toggle_queue_sidebar into this closure.
-                cb_sink.send(Box::new(add_queue_fn)).unwrap();
-            }
-        };
-
-        siv.call_on_name("browser_layout", toggle_queue_fn)
-            .expect("browser_layout doesn't exist");
+        siv.call_on_name("queue_hider_view", |hideable_view: &mut QueueHiderView| {
+            let is_visable = hideable_view.is_visible();
+            hideable_view.set_visible(!is_visable);
+        }).unwrap();
     }
 
     fn build_menus(&self, siv: &mut Cursive) {
