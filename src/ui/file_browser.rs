@@ -12,7 +12,7 @@ use cursive::{Printer, Rect, Vec2};
 
 use crate::library::TrackedPath;
 use crate::player::is_audio_file_guess;
-use crate::player::PlayerHdl;
+use crate::player::{PlayerHdl, Queue, QueueItem};
 
 const HELP_TEXT: &'static str = "\
 Press <Enter> to start playing a file, or browse between folders
@@ -106,7 +106,11 @@ impl FileBrowserView {
                     view.directory = full_path.canonicalize().unwrap();
                     view.refresh_view();
                 } else if full_path.is_file() {
-                    view.player.play_file(full_path.clone());
+                    // TODO make the new queue include the rest of the songs shown
+                    let new_queue = vec![QueueItem::Path(full_path.clone())];
+                    let mut queue = view.player.queue_mut();
+                    queue.replace_queue(new_queue);
+                    queue.play_queue();
                 }
             });
         });
@@ -180,7 +184,11 @@ impl FileBrowserView {
             let player = PlayerHdl::new();
             match action {
                 Actions::PlayNow => {
-                    player.play_file(&item_path);
+                    // TODO make the new queue include the rest of the songs shown
+                    let new_queue = vec![QueueItem::Path(item_path.clone())];
+                    let mut queue = player.queue_mut();
+                    queue.replace_queue(new_queue);
+                    queue.play_queue();
                 }
                 Actions::AddToQueue => {
                     player.queue_mut().add_song(&item_path);

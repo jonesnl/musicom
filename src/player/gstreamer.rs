@@ -30,7 +30,6 @@ struct SharedPlayerContents {
 pub struct GstPlayer {
     playbin: gst::Element,
     shared: Arc<RwLock<SharedPlayerContents>>,
-    queue: Arc<RwLock<Queue>>,
     now_playing: Arc<RwLock<NowPlaying>>,
 }
 
@@ -46,7 +45,6 @@ impl GstPlayer {
         Self {
             playbin: PLAYBIN.clone(),
             shared: SHARED_STATE.clone(),
-            queue: QUEUE.clone(),
             now_playing: NOW_PLAYING.clone(),
         }
     }
@@ -152,11 +150,11 @@ impl GstPlayer {
     }
 
     pub fn queue(&self) -> RwLockReadGuard<Queue> {
-        self.queue.read().unwrap()
+        QUEUE.read().unwrap()
     }
 
     pub fn queue_mut(&self) -> RwLockWriteGuard<Queue> {
-        self.queue.write().unwrap()
+        QUEUE.write().unwrap()
     }
 
     pub fn now_playing(&self) -> RwLockReadGuard<NowPlaying> {
@@ -167,7 +165,9 @@ impl GstPlayer {
         self.now_playing.write().unwrap()
     }
 
-    pub fn play_file<S: Into<PathBuf>>(&self, fname: S) {
+    /// This should only be accessed by the Queue, if you want to play a
+    /// file, add it to the queue then play it from there.
+    pub(super) fn play_file<S: Into<PathBuf>>(&self, fname: S) {
         self.stop();
 
         let uri_str = create_gst_uri(&fname.into()).unwrap();

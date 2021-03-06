@@ -8,7 +8,7 @@ use cursive::views::{Dialog, OnEventView, Panel, SelectView};
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::library::{Album, Track};
-use crate::player::PlayerHdl;
+use crate::player::{PlayerHdl, QueueItem};
 use crate::ui::main_view;
 
 const HELP_TEXT: &'static str = "\
@@ -64,7 +64,11 @@ impl LibrarySongView {
     fn set_select_callbacks(&mut self) {
         self.select_view.set_on_submit(move |siv, track| {
             siv.call_on_name("library_song_view", |view: &mut Self| {
-                view.player.play_file(&*track.path);
+                // TODO make the new queue include the rest of the songs shown
+                let new_queue = vec![QueueItem::Track(track.clone())];
+                let mut queue = view.player.queue_mut();
+                queue.replace_queue(new_queue);
+                queue.play_queue();
             });
         });
     }
@@ -102,11 +106,14 @@ impl LibrarySongView {
         action_popup.add_item("Play Now", Actions::PlayNow);
 
         action_popup.set_on_submit(move |s, action| {
-            let path_buf: &PathBuf = &track.path;
             let player = PlayerHdl::new();
             match action {
                 Actions::PlayNow => {
-                    player.play_file(path_buf);
+                    // TODO make the new queue include the rest of the songs shown
+                    let new_queue = vec![QueueItem::Track(track.clone())];
+                    let mut queue = player.queue_mut();
+                    queue.replace_queue(new_queue);
+                    queue.play_queue();
                 }
                 Actions::GoToAlbum => {
                     if let Some(album_str) = track.album.as_ref() {
