@@ -105,7 +105,9 @@ impl LibrarySongView {
             let path_buf: &PathBuf = &track.path;
             let player = PlayerHdl::new();
             match action {
-                Actions::PlayNow => player.play_file(path_buf),
+                Actions::PlayNow => {
+                    player.play_file(path_buf);
+                }
                 Actions::GoToAlbum => {
                     if let Some(album_str) = track.album.as_ref() {
                         let album = Album::get_album(album_str);

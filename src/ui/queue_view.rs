@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use cursive::align::HAlign;
 use cursive::event::{Event, EventResult};
 use cursive::view::{Nameable, View, ViewWrapper};
@@ -69,7 +71,7 @@ impl QueueView {
             self.select_view.add_all_str(
                 queue
                     .iter()
-                    .filter_map(|item| item.get_path().file_name().to_owned())
+                    .filter_map(|item| item.get_path()?.file_name().to_owned())
                     .filter_map(|item| item.to_str()),
             );
         }

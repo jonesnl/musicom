@@ -98,8 +98,8 @@ impl GstPlayer {
             .connect("about-to-finish", false, move |args| {
                 let playbin = args[0].get::<gst::Element>().unwrap().unwrap();
 
-                if let Some(ref next_song) = QUEUE.write().unwrap().next() {
-                    let uri_str = create_gst_uri(next_song.get_path()).unwrap();
+                if let Some(ref next_song) = QUEUE.write().unwrap().next_song() {
+                    let uri_str = create_gst_uri(next_song.get_path()?).unwrap();
                     playbin.set_property("uri", &uri_str).unwrap();
                 }
                 None
