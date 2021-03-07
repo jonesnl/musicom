@@ -1,10 +1,12 @@
 # musicom
 A terminal music player written in Rust.
 
-![Screenshot](/screenshots/screenshot.png?raw=true)
+![Screenshot](/screenshots/screenshot2.png?raw=true)
 
 # Features
-Currently, musicom has a file browser to play music files from, and a rudimentary queue to play songs one after another.
+Currently, musicom has a file browser to play music files from, a basic music library, and a rudimentary queue to play songs one after another.
+
+There is still a lot of undocumented behavior as this is a work in progress project, but as things solidify I will do my best to update the `<?>` documentation.
 
 Use `<?>` to get help text on available commands in musicom.
 
