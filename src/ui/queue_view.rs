@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use cursive::align::HAlign;
 use cursive::event::{Event, EventResult};
 use cursive::view::{Nameable, View, ViewWrapper};
@@ -23,7 +21,7 @@ impl ViewWrapper for QueueView {
                 let popup = Self::get_help_view();
                 siv.add_layer(popup);
             }),
-            _ => self.select_view.on_event(e)
+            _ => self.select_view.on_event(e),
         }
     }
 
@@ -64,6 +62,7 @@ impl QueueView {
         self.select_view.clear();
 
         let queue = self.player.queue().get_queue_contents();
+        let queue_idx_opt = self.player.queue().get_queue_position();
 
         if queue.is_empty() {
             self.select_view.add_item_str("Empty");
@@ -72,7 +71,17 @@ impl QueueView {
                 queue
                     .iter()
                     .filter_map(|item| item.get_path()?.file_name().to_owned())
-                    .filter_map(|item| item.to_str()),
+                    .filter_map(|item| item.to_str())
+                    .enumerate()
+                    .map(|(idx, item)| {
+                        if let Some(queue_idx) = queue_idx_opt {
+                            (queue_idx == idx)
+                                .then(|| format!("-- {} --", item))
+                                .unwrap_or(item.to_string())
+                        } else {
+                            item.to_string()
+                        }
+                    }),
             );
         }
     }

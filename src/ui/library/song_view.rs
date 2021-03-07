@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use cursive::event::{Event, EventResult, Key};
 use cursive::traits::Finder;
 use cursive::view::{Nameable, Resizable, Scrollable, View, ViewWrapper};
@@ -58,17 +56,27 @@ impl LibrarySongView {
 
         lib_view.set_select_callbacks();
         lib_view.show_full_list_of_songs();
-        lib_view.with_name("library_song_view").full_screen().scrollable()
+        lib_view
+            .with_name("library_song_view")
+            .full_screen()
+            .scrollable()
     }
 
     fn set_select_callbacks(&mut self) {
-        self.select_view.set_on_submit(move |siv, track| {
+        self.select_view.set_on_submit(move |siv, _| {
             siv.call_on_name("library_song_view", |view: &mut Self| {
-                // TODO make the new queue include the rest of the songs shown
-                let new_queue = vec![QueueItem::Track(track.clone())];
-                let mut queue = view.player.queue_mut();
-                queue.replace_queue(new_queue);
-                queue.play_queue();
+                let all_tracks = view
+                    .select_view
+                    .iter()
+                    .map(|(_s, track)| QueueItem::Track(track.clone()))
+                    .collect::<Vec<_>>();
+                let index = view.select_view.selected_id();
+                if !all_tracks.is_empty() && index.is_some() {
+                    let mut queue = view.player.queue_mut();
+                    queue.replace_queue(all_tracks);
+                    queue.set_queue_index(index.unwrap());
+                    queue.play_queue_at_selection();
+                }
             });
         });
     }
@@ -81,15 +89,14 @@ impl LibrarySongView {
 
     pub fn show_songs_from_iter<'a, I>(&mut self, tracks: I)
     where
-        I: IntoIterator<Item = &'a Track>
+        I: IntoIterator<Item = &'a Track>,
     {
         self.select_view.clear();
         for track in tracks.into_iter() {
             let track_name = track.title.clone().unwrap_or("No Title".to_string());
-            
+
             let short_track_name = track_name.graphemes(true).take(50).collect::<String>();
-            self.select_view
-                .add_item(short_track_name, track.clone());
+            self.select_view.add_item(short_track_name, track.clone());
         }
     }
 
@@ -109,11 +116,20 @@ impl LibrarySongView {
             let player = PlayerHdl::new();
             match action {
                 Actions::PlayNow => {
-                    // TODO make the new queue include the rest of the songs shown
-                    let new_queue = vec![QueueItem::Track(track.clone())];
-                    let mut queue = player.queue_mut();
-                    queue.replace_queue(new_queue);
-                    queue.play_queue();
+                    s.call_on_name("library_song_view", |v: &mut LibrarySongView| {
+                        let all_tracks = v
+                            .select_view
+                            .iter()
+                            .map(|(_s, track)| QueueItem::Track(track.clone()))
+                            .collect::<Vec<_>>();
+                        let index = v.select_view.selected_id();
+                        if !all_tracks.is_empty() && index.is_some() {
+                            let mut queue = v.player.queue_mut();
+                            queue.replace_queue(all_tracks);
+                            queue.set_queue_index(index.unwrap());
+                            queue.play_queue_at_selection();
+                        }
+                    });
                 }
                 Actions::GoToAlbum => {
                     if let Some(album_str) = track.album.as_ref() {
@@ -126,16 +142,15 @@ impl LibrarySongView {
 
                         main_view::replace_view(s, song_view);
                     }
-                },
+                }
                 Actions::AddToQueue => player.queue_mut().add_track(&track),
             }
             s.pop_layer();
         });
 
-        let wrapped_event = OnEventView::new(action_popup)
-            .on_pre_event(Key::Esc, |siv| {
-                siv.pop_layer();
-            });
+        let wrapped_event = OnEventView::new(action_popup).on_pre_event(Key::Esc, |siv| {
+            siv.pop_layer();
+        });
 
         Panel::new(wrapped_event)
     }

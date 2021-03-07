@@ -179,6 +179,22 @@ impl Queue {
         self.notifier.notify();
     }
 
+    pub fn play_queue_at_selection(&mut self) {
+        if self.cur_idx.is_none() {
+            self.play_queue();
+            return;
+        }
+
+        let current_song = self.items.get(self.cur_idx.unwrap());
+        if current_song.is_none() {
+            return;
+        }
+        let current_song = current_song.unwrap();
+        let song_path = current_song.get_path().unwrap();
+        self.player.play_file(song_path);
+        self.notifier.notify();
+    }
+
     pub fn add_song(&mut self, path: &Path) {
         self.items.push(QueueItem::new_from_path(path));
         self.notifier.notify();

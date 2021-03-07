@@ -12,7 +12,7 @@ use cursive::{Printer, Rect, Vec2};
 
 use crate::library::TrackedPath;
 use crate::player::is_audio_file_guess;
-use crate::player::{PlayerHdl, Queue, QueueItem};
+use crate::player::{PlayerHdl, QueueItem};
 
 const HELP_TEXT: &'static str = "\
 Press <Enter> to start playing a file, or browse between folders
